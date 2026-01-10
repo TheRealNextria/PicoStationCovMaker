@@ -1,0 +1,1 @@
+PicoStationCovMaker is a WinForms utility that generates PlayStation 1 cover images for PicoStation. It scans PS1 game folders, detects game serials, downloads covers, and converts them to the raw PS1 GPU .cov format.

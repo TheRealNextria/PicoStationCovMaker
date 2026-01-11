@@ -817,7 +817,7 @@ namespace PicoStationCovMaker
             const int ChunkSize = 1024 * 1024;
             const int Overlap = 64;
 
-            var rx = new Regex(@"\b(SCUS|SLUS|SLES|SCES|SCPS|SLPS|SCPM|SIPS|SLED)_[0-9]{3}\.[0-9]{2}\b",
+            var rx = new Regex(@"\b(SCUS|SLUS|SLES|SCES|SCPS|SLPS|SCPM|SIPS|SLPM|SLED)_[0-9]{3}\.[0-9]{2}\b",
                 RegexOptions.Compiled);
 
             using var fs = new FileStream(binPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);

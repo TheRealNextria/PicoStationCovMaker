@@ -1,21 +1,41 @@
+#nullable disable
+
 namespace PicoStationCovMaker
+
 {
+
     partial class MainForm
+
     {
+
         private System.ComponentModel.IContainer components = null;
 
+
+
         protected override void Dispose(bool disposing)
+
         {
+
             if (disposing && (components != null))
+
             {
+
                 components.Dispose();
+
             }
+
             base.Dispose(disposing);
+
         }
+
+
 
         #region Windows Form Designer generated code
 
+
+
         private void InitializeComponent()
+
         {
             dropPanel = new Panel();
             dropLabel = new Label();
@@ -32,18 +52,30 @@ namespace PicoStationCovMaker
             btnOutputFolder = new Button();
             btnScanSd = new Button();
             btnDownloadCovers = new Button();
+            grpOutputFormat = new GroupBox();
+            rb16bpp = new RadioButton();
+            rb8bpp = new RadioButton();
+            grpDownloadType = new GroupBox();
+            rbDlCover = new RadioButton();
+            rbDl3d = new RadioButton();
+            rbDlCd = new RadioButton();
+            chkDlOverwrite = new CheckBox();
             lblCoverBaseUrl = new Label();
-            txtCoverBaseUrl = new TextBox();
+            cmbCoverBaseUrl = new ComboBox();
             btnCoverUrlReset = new Button();
             lblOutputFolder = new Label();
             splitContainer = new SplitContainer();
             splitRight = new SplitContainer();
             previewPanel = new Panel();
             picPreview = new PictureBox();
+            previewHeader = new Panel();
             lblPreview = new Label();
+            btnExportPalette = new Button();
             dropPanel.SuspendLayout();
             bottomPanel.SuspendLayout();
             topPanel.SuspendLayout();
+            grpOutputFormat.SuspendLayout();
+            grpDownloadType.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer).BeginInit();
             splitContainer.Panel1.SuspendLayout();
             splitContainer.Panel2.SuspendLayout();
@@ -54,6 +86,7 @@ namespace PicoStationCovMaker
             splitRight.SuspendLayout();
             previewPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picPreview).BeginInit();
+            previewHeader.SuspendLayout();
             SuspendLayout();
             // 
             // dropPanel
@@ -75,7 +108,7 @@ namespace PicoStationCovMaker
             dropLabel.Name = "dropLabel";
             dropLabel.Size = new Size(466, 480);
             dropLabel.TabIndex = 0;
-            dropLabel.Text = "Drop images / folders / .cov files here\r\n\r\nOutput: 128×128 raw 16bpp BGR555 (.cov)\r\n(32,768 bytes, little-endian)\r\n\r\nTip: drop an existing .cov to preview it.";
+            dropLabel.Text = "Drop images / folders / .cov files here\r\n\r\nOutput: 128x128 8bpp indexed + palette (.cov)\r\n(16,896 bytes; 16,912 bytes with serial)\r\n\r\nTip: drop an existing .cov to preview it.";
             dropLabel.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // lvFiles
@@ -144,8 +177,10 @@ namespace PicoStationCovMaker
             topPanel.Controls.Add(btnOutputFolder);
             topPanel.Controls.Add(btnScanSd);
             topPanel.Controls.Add(btnDownloadCovers);
+            topPanel.Controls.Add(grpOutputFormat);
+            topPanel.Controls.Add(grpDownloadType);
             topPanel.Controls.Add(lblCoverBaseUrl);
-            topPanel.Controls.Add(txtCoverBaseUrl);
+            topPanel.Controls.Add(cmbCoverBaseUrl);
             topPanel.Controls.Add(btnCoverUrlReset);
             topPanel.Controls.Add(lblOutputFolder);
             topPanel.Dock = DockStyle.Top;
@@ -202,13 +237,106 @@ namespace PicoStationCovMaker
             // btnDownloadCovers
             // 
             btnDownloadCovers.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnDownloadCovers.Location = new Point(960, 10);
+            btnDownloadCovers.Location = new Point(923, 10);
             btnDownloadCovers.Name = "btnDownloadCovers";
-            btnDownloadCovers.Size = new Size(75, 25);
+            btnDownloadCovers.Size = new Size(112, 25);
             btnDownloadCovers.TabIndex = 5;
-            btnDownloadCovers.Text = "Covers...";
+            btnDownloadCovers.Text = "Download Covers";
             btnDownloadCovers.UseVisualStyleBackColor = true;
             btnDownloadCovers.Click += btnDownloadCovers_Click;
+            // 
+            // grpOutputFormat
+            // 
+            grpOutputFormat.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            grpOutputFormat.Controls.Add(rb16bpp);
+            grpOutputFormat.Controls.Add(rb8bpp);
+            grpOutputFormat.Location = new Point(400, 4);
+            grpOutputFormat.Name = "grpOutputFormat";
+            grpOutputFormat.Size = new Size(150, 38);
+            grpOutputFormat.TabIndex = 9;
+            grpOutputFormat.TabStop = false;
+            grpOutputFormat.Text = "Output format";
+            grpOutputFormat.Visible = false;
+            // 
+            // rb16bpp
+            // 
+            rb16bpp.AutoSize = true;
+            rb16bpp.Enabled = false;
+            rb16bpp.Location = new Point(10, 16);
+            rb16bpp.Name = "rb16bpp";
+            rb16bpp.Size = new Size(58, 19);
+            rb16bpp.TabIndex = 0;
+            rb16bpp.Text = "16bpp";
+            rb16bpp.UseVisualStyleBackColor = true;
+            rb16bpp.Visible = false;
+            // 
+            // rb8bpp
+            // 
+            rb8bpp.AutoSize = true;
+            rb8bpp.Checked = true;
+            rb8bpp.Location = new Point(90, 16);
+            rb8bpp.Name = "rb8bpp";
+            rb8bpp.Size = new Size(52, 19);
+            rb8bpp.TabIndex = 1;
+            rb8bpp.TabStop = true;
+            rb8bpp.Text = "8bpp";
+            rb8bpp.UseVisualStyleBackColor = true;
+            // 
+            // grpDownloadType
+            // 
+            grpDownloadType.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            grpDownloadType.Controls.Add(rbDlCover);
+            grpDownloadType.Controls.Add(rbDl3d);
+            grpDownloadType.Controls.Add(rbDlCd);
+            grpDownloadType.Controls.Add(chkDlOverwrite);
+            grpDownloadType.Location = new Point(556, 4);
+            grpDownloadType.Name = "grpDownloadType";
+            grpDownloadType.Size = new Size(270, 38);
+            grpDownloadType.TabIndex = 10;
+            grpDownloadType.TabStop = false;
+            grpDownloadType.Text = "Download type";
+            // 
+            // rbDlCover
+            // 
+            rbDlCover.AutoSize = true;
+            rbDlCover.Checked = true;
+            rbDlCover.Location = new Point(10, 16);
+            rbDlCover.Name = "rbDlCover";
+            rbDlCover.Size = new Size(56, 19);
+            rbDlCover.TabIndex = 0;
+            rbDlCover.TabStop = true;
+            rbDlCover.Text = "Cover";
+            rbDlCover.UseVisualStyleBackColor = true;
+            // 
+            // rbDl3d
+            // 
+            rbDl3d.AutoSize = true;
+            rbDl3d.Location = new Point(85, 16);
+            rbDl3d.Name = "rbDl3d";
+            rbDl3d.Size = new Size(39, 19);
+            rbDl3d.TabIndex = 1;
+            rbDl3d.Text = "3D";
+            rbDl3d.UseVisualStyleBackColor = true;
+            // 
+            // rbDlCd
+            // 
+            rbDlCd.AutoSize = true;
+            rbDlCd.Location = new Point(140, 16);
+            rbDlCd.Name = "rbDlCd";
+            rbDlCd.Size = new Size(41, 19);
+            rbDlCd.TabIndex = 2;
+            rbDlCd.Text = "CD";
+            rbDlCd.UseVisualStyleBackColor = true;
+            // 
+            // chkDlOverwrite
+            // 
+            chkDlOverwrite.AutoSize = true;
+            chkDlOverwrite.Location = new Point(190, 16);
+            chkDlOverwrite.Name = "chkDlOverwrite";
+            chkDlOverwrite.Size = new Size(77, 19);
+            chkDlOverwrite.TabIndex = 3;
+            chkDlOverwrite.Text = "Overwrite";
+            chkDlOverwrite.UseVisualStyleBackColor = true;
             // 
             // lblCoverBaseUrl
             // 
@@ -219,13 +347,15 @@ namespace PicoStationCovMaker
             lblCoverBaseUrl.TabIndex = 6;
             lblCoverBaseUrl.Text = "Cover source URL:";
             // 
-            // txtCoverBaseUrl
+            // cmbCoverBaseUrl
             // 
-            txtCoverBaseUrl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            txtCoverBaseUrl.Location = new Point(115, 45);
-            txtCoverBaseUrl.Name = "txtCoverBaseUrl";
-            txtCoverBaseUrl.Size = new Size(1083, 23);
-            txtCoverBaseUrl.TabIndex = 7;
+            cmbCoverBaseUrl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cmbCoverBaseUrl.DropDownStyle = ComboBoxStyle.DropDown;
+            cmbCoverBaseUrl.FormattingEnabled = true;
+            cmbCoverBaseUrl.Location = new Point(115, 45);
+            cmbCoverBaseUrl.Name = "cmbCoverBaseUrl";
+            cmbCoverBaseUrl.Size = new Size(1083, 23);
+            cmbCoverBaseUrl.TabIndex = 7;
             // 
             // btnCoverUrlReset
             // 
@@ -289,7 +419,7 @@ namespace PicoStationCovMaker
             // 
             previewPanel.BorderStyle = BorderStyle.FixedSingle;
             previewPanel.Controls.Add(picPreview);
-            previewPanel.Controls.Add(lblPreview);
+            previewPanel.Controls.Add(previewHeader);
             previewPanel.Dock = DockStyle.Fill;
             previewPanel.Location = new Point(0, 0);
             previewPanel.Name = "previewPanel";
@@ -300,23 +430,44 @@ namespace PicoStationCovMaker
             // picPreview
             // 
             picPreview.Dock = DockStyle.Fill;
-            picPreview.Location = new Point(10, 30);
+            picPreview.Location = new Point(10, 34);
             picPreview.Name = "picPreview";
-            picPreview.Size = new Size(853, 202);
+            picPreview.Size = new Size(853, 198);
             picPreview.SizeMode = PictureBoxSizeMode.Zoom;
             picPreview.TabIndex = 1;
             picPreview.TabStop = false;
             // 
+            // previewHeader
+            // 
+            previewHeader.Controls.Add(lblPreview);
+            previewHeader.Controls.Add(btnExportPalette);
+            previewHeader.Dock = DockStyle.Top;
+            previewHeader.Location = new Point(10, 10);
+            previewHeader.Name = "previewHeader";
+            previewHeader.Size = new Size(853, 24);
+            previewHeader.TabIndex = 2;
+            // 
             // lblPreview
             // 
             lblPreview.AutoEllipsis = true;
-            lblPreview.Dock = DockStyle.Top;
-            lblPreview.Location = new Point(10, 10);
+            lblPreview.Dock = DockStyle.Fill;
+            lblPreview.Location = new Point(0, 0);
             lblPreview.Name = "lblPreview";
-            lblPreview.Size = new Size(853, 20);
+            lblPreview.Size = new Size(723, 24);
             lblPreview.TabIndex = 0;
             lblPreview.Text = "Preview: (none)";
             lblPreview.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // btnExportPalette
+            // 
+            btnExportPalette.Dock = DockStyle.Right;
+            btnExportPalette.Location = new Point(723, 0);
+            btnExportPalette.Name = "btnExportPalette";
+            btnExportPalette.Size = new Size(130, 24);
+            btnExportPalette.TabIndex = 1;
+            btnExportPalette.Text = "Export palette (.pal)";
+            btnExportPalette.UseVisualStyleBackColor = true;
+            btnExportPalette.Click += btnExportPalette_Click;
             // 
             // MainForm
             // 
@@ -335,6 +486,10 @@ namespace PicoStationCovMaker
             bottomPanel.PerformLayout();
             topPanel.ResumeLayout(false);
             topPanel.PerformLayout();
+            grpOutputFormat.ResumeLayout(false);
+            grpOutputFormat.PerformLayout();
+            grpDownloadType.ResumeLayout(false);
+            grpDownloadType.PerformLayout();
             splitContainer.Panel1.ResumeLayout(false);
             splitContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer).EndInit();
@@ -345,34 +500,86 @@ namespace PicoStationCovMaker
             splitRight.ResumeLayout(false);
             previewPanel.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)picPreview).EndInit();
+            previewHeader.ResumeLayout(false);
             ResumeLayout(false);
+
         }
+
+
 
         #endregion
 
+
+
         private System.Windows.Forms.Panel dropPanel;
+
         private System.Windows.Forms.Label dropLabel;
+
         private System.Windows.Forms.ListView lvFiles;
+
         private System.Windows.Forms.ColumnHeader colInput;
+
         private System.Windows.Forms.ColumnHeader colOutput;
+
         private System.Windows.Forms.ColumnHeader colStatus;
+
         private System.Windows.Forms.Panel bottomPanel;
+
         private System.Windows.Forms.ProgressBar progressBar;
+
         private System.Windows.Forms.TextBox txtLog;
+
         private System.Windows.Forms.Panel topPanel;
+
         private System.Windows.Forms.Button btnConvert;
+
         private System.Windows.Forms.Button btnClear;
+
         private System.Windows.Forms.Button btnOutputFolder;
+
         private System.Windows.Forms.Button btnScanSd;
+
         private System.Windows.Forms.Button btnDownloadCovers;
+
+        private System.Windows.Forms.GroupBox grpOutputFormat;
+
+        private System.Windows.Forms.RadioButton rb16bpp;
+
+        private System.Windows.Forms.RadioButton rb8bpp;
+
+        private System.Windows.Forms.GroupBox grpDownloadType;
+
+        private System.Windows.Forms.RadioButton rbDlCover;
+
+        private System.Windows.Forms.RadioButton rbDl3d;
+
+        private System.Windows.Forms.RadioButton rbDlCd;
+
+        private System.Windows.Forms.CheckBox chkDlOverwrite;
+
         private System.Windows.Forms.Label lblCoverBaseUrl;
-        private System.Windows.Forms.TextBox txtCoverBaseUrl;
+
+        private System.Windows.Forms.ComboBox cmbCoverBaseUrl;
+
         private System.Windows.Forms.Button btnCoverUrlReset;
+
         private System.Windows.Forms.Label lblOutputFolder;
+
         private System.Windows.Forms.SplitContainer splitContainer;
+
         private System.Windows.Forms.SplitContainer splitRight;
+
         private System.Windows.Forms.Panel previewPanel;
+
+        private System.Windows.Forms.Panel previewHeader;
+
+        private System.Windows.Forms.Button btnExportPalette;
+
         private System.Windows.Forms.PictureBox picPreview;
+
         private System.Windows.Forms.Label lblPreview;
+
     }
+
 }
+

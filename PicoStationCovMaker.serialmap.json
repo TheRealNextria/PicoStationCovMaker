@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "pvd_crc32": {
+    "F4F4B0EB": {
+      "serial": "SCPS-10006",
+      "title": "Gunners Heaven",
+      "notes": "No serial present in BIN; identified via PVD CRC32"
+    },
+    "1A9C44D0": {
+      "serial": "SLPM-86008",
+      "title": "Jikkyou Oshaberi Parodius - Forever with Me",
+      "notes": "No serial present in BIN; identified via PVD CRC32"
+     },
+    "99CA72F7": {
+      "serial": "SLPS-00002",
+      "title": "Gokujou Parodius Da! Deluxe Pack ",
+      "notes": "No serial present in BIN; identified via PVD CRC32"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -16,5 +16,19 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\font.png" />
+    <None Remove="Assets\font2.png" />
+    <None Remove="Assets\picostationlogo.png" />
+    <None Remove="Assets\SCUS-94508.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\font.png" />
+    <EmbeddedResource Include="Assets\font2.png" />
+    <EmbeddedResource Include="Assets\picostationlogo.png" />
+    <EmbeddedResource Include="Assets\SCUS-94508.png" />
+  </ItemGroup>
 
 </Project>

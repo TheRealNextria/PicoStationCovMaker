@@ -20,6 +20,21 @@
       "serial": "B65B160A",
       "title": "GameShark - Video Game Enhancer - Version 5",
       "notes": "No serial present in BIN; identified via PVD CRC32"
+     },
+    "06FD61BA": {
+      "serial": "06FD61BA",
+      "title": "UNIROM 8",
+      "notes": "No serial present in BIN; identified via PVD CRC32"
+    },
+    "ACC1A53E": {
+      "serial": "ACC1A53E",
+      "title": "240p Test Suite",
+      "notes": "No serial present in BIN; identified via PVD CRC32"
+    },
+    "15EF40ED": {
+      "serial": "15EF40ED",
+      "title": "GameShark 2 - Video Game Enhancer - Code Archive Disc",
+      "notes": "No serial present in BIN; identified via PVD CRC32"
     }
   }
 }

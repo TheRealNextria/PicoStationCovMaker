@@ -19,6 +19,9 @@ namespace PicoStationCovMaker
 {
     public partial class MainForm : Form
     {
+        // Open SD support
+        private string? _lastSdRoot;
+
         private readonly HashSet<string> _inputs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private string? _outputFolder;
         private string? _currentPreviewCovPath;
@@ -31,7 +34,7 @@ namespace PicoStationCovMaker
         // Base repo (kept for the config textbox); actual downloads use the 3 fixed paths below.
         private const string DefaultCoverBaseUrl = "https://raw.githubusercontent.com/megavolt85/picostation-covers/main";
 
-        private string CoverSourceConfigPath => Path.Combine(AppContext.BaseDirectory, "PicoStationCovMaker.config.json");
+        private string CoverSourceConfigPath => Path.Combine(AppContext.BaseDirectory, "Tools", "PicoStationCovMaker.config.json");
 
         private sealed class CoverSourceCfg
         {
@@ -46,30 +49,19 @@ namespace PicoStationCovMaker
                 string pngquantPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "pngquant.exe");
                 bool hasPngquant = File.Exists(pngquantPath);
 
-                // Convert requires pngquant.exe (disable button if missing)
+                // Conversion is 8bpp-only; pngquant.exe is required.
                 if (btnConvert != null)
-                btnConvert.Enabled = hasPngquant;
-                // 8bpp mode requires pngquant.exe (no fallback)
-                if (rb8bpp != null)
                 {
-                    rb8bpp.Enabled = hasPngquant;
-
-                    // If user had 8bpp selected but pngquant is missing, force 16bpp.
-                    if (!hasPngquant && rb8bpp.Checked && rb16bpp != null)
-                    rb16bpp.Checked = true;
+                    btnConvert.Enabled = hasPngquant;
                 }
             }
             catch
             {
-                // If anything goes wrong, fail safe: disable 8bpp.
-                if (rb8bpp != null)
-                {
-                    rb8bpp.Enabled = false;
-                    if (rb8bpp.Checked && rb16bpp != null)
-                    rb16bpp.Checked = true;
-                }
+                // Fail safe: disable conversion if availability cannot be determined.
                 if (btnConvert != null)
-                btnConvert.Enabled = false;
+                {
+                    btnConvert.Enabled = false;
+                }
             }
         }
 
@@ -155,7 +147,7 @@ namespace PicoStationCovMaker
 
         private AppConfig _config = new AppConfig();
 
-        private string ConfigPath => Path.Combine(AppContext.BaseDirectory, ConfigFileName);
+        private string ConfigPath => Path.Combine(AppContext.BaseDirectory, "Tools", ConfigFileName);
 
         private void LoadConfig()
         {
@@ -171,7 +163,7 @@ namespace PicoStationCovMaker
                 var cfg = JsonSerializer.Deserialize<AppConfig>(json);
                 _config = cfg ?? new AppConfig { CoverBaseUrl = DefaultCoverBaseUrl };
                 if (string.IsNullOrWhiteSpace(_config.CoverBaseUrl))
-                _config.CoverBaseUrl = DefaultCoverBaseUrl;
+                    _config.CoverBaseUrl = DefaultCoverBaseUrl;
             }
             catch
             {
@@ -331,6 +323,9 @@ namespace PicoStationCovMaker
             this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             this.ShowInTaskbar = true;
             InitializeComponent();
+            WindowState = FormWindowState.Maximized;
+            InitMenuColorsUi();
+            btnOpenSd.Enabled = false;
             UpdatePngquantAvailability();
             LoadCoverSourceSettings();
             LoadConfig();
@@ -409,16 +404,16 @@ namespace PicoStationCovMaker
             catch { files = Directory.EnumerateFiles(folder, "*.*", SearchOption.TopDirectoryOnly); }
 
             foreach (var f in files)
-            if (IsSupportedDropInput(f))
-            yield return f;
+                if (IsSupportedDropInput(f))
+                    yield return f;
         }
 
         private void Main_DragEnter(object? sender, DragEventArgs e)
         {
             if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
-            e.Effect = DragDropEffects.Copy;
+                e.Effect = DragDropEffects.Copy;
             else
-            e.Effect = DragDropEffects.None;
+                e.Effect = DragDropEffects.None;
         }
 
         private void Main_DragDrop(object? sender, DragEventArgs e)
@@ -480,7 +475,7 @@ namespace PicoStationCovMaker
 
                 meta.OriginalIndex = _nextOriginalIndex++;
 
-                var item = new ListViewItem(new[] { f, outPath, status })
+                var item = new ListViewItem(new[] { f, status })
                 {
                     Tag = meta
                 };
@@ -516,10 +511,10 @@ namespace PicoStationCovMaker
             };
 
             if (!string.IsNullOrWhiteSpace(_outputFolder) && Directory.Exists(_outputFolder))
-            dlg.SelectedPath = _outputFolder;
+                dlg.SelectedPath = _outputFolder;
 
             if (dlg.ShowDialog(this) != DialogResult.OK)
-            return;
+                return;
 
             _outputFolder = dlg.SelectedPath;
             UpdateOutputFolderLabel();
@@ -542,7 +537,6 @@ namespace PicoStationCovMaker
                 if (meta.Kind == InputKind.Image)
                 {
                     meta.OutputPath = ResolveOutputPath(meta.InputPath);
-                    item.SubItems[1].Text = meta.OutputPath;
                 }
             }
         }
@@ -551,7 +545,7 @@ namespace PicoStationCovMaker
         {
             string name = Path.GetFileNameWithoutExtension(inputPath) + ".cov";
             if (!string.IsNullOrWhiteSpace(_outputFolder))
-            return Path.Combine(_outputFolder!, name);
+                return Path.Combine(_outputFolder!, name);
 
             return Path.Combine(Path.GetDirectoryName(inputPath)!, name);
         }
@@ -562,7 +556,28 @@ namespace PicoStationCovMaker
             return Path.Combine(Path.GetDirectoryName(gamePath)!, name);
         }
 
-        private async void btnConvert_Click(object sender, EventArgs e)
+        
+private static string? ResolveFolderCovPathForGame(string gamePath)
+{
+    // Folder cover lives next to the game folder:
+    //   <parent-of-game-folder>\<game-folder-name>.cov
+    // If the game is on the root of the drive (no folder), return null.
+    string? gameDir = Path.GetDirectoryName(gamePath);
+    if (string.IsNullOrWhiteSpace(gameDir))
+        return null;
+
+    string trimmed = gameDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    string folderName = Path.GetFileName(trimmed);
+    if (string.IsNullOrWhiteSpace(folderName))
+        return null;
+
+    string? parent = Path.GetDirectoryName(trimmed);
+    if (string.IsNullOrWhiteSpace(parent))
+        return null;
+
+    return Path.Combine(parent, folderName + ".cov");
+}
+private async void btnConvert_Click(object sender, EventArgs e)
         {
             if (lvFiles.Items.Count == 0)
             {
@@ -590,13 +605,13 @@ namespace PicoStationCovMaker
 
                     if (meta.Kind == InputKind.Cov || meta.Kind == InputKind.Game)
                     {
-                        item.SubItems[2].Text = meta.Kind == InputKind.Game ? "Skipped (game entry)" : "Skipped (.cov preview only)";
+                        item.SubItems[1].Text = meta.Kind == InputKind.Game ? "Skipped (game entry)" : "Skipped (.cov preview only)";
                         skipped++;
                         progressBar.Value = i + 1;
                         continue;
                     }
 
-                    item.SubItems[2].Text = "Converting...";
+                    item.SubItems[1].Text = "Converting...";
                     await Task.Yield();
 
                     try
@@ -615,17 +630,16 @@ namespace PicoStationCovMaker
                         if (sz != 16912)
                             throw new IOException($"Output size was {sz} bytes, expected 16912.");
 
-                        item.SubItems[2].Text = $"OK ({sz} bytes)";
+                        item.SubItems[1].Text = $"OK ({sz} bytes)";
                         meta.OutputPath = outPath;
-                        item.SubItems[1].Text = outPath;
                         ok++;
 
                         if (item.Selected)
-                        PreviewGeneratedCov(meta);
+                            PreviewGeneratedCov(meta);
                     }
                     catch (Exception ex)
                     {
-                        item.SubItems[2].Text = "ERROR";
+                        item.SubItems[1].Text = "ERROR";
                         Log($"ERROR: {meta.InputPath}\r\n  {ex.Message}");
                         fail++;
                     }
@@ -669,25 +683,47 @@ namespace PicoStationCovMaker
                 }
                 return;
             }
+if (meta.Kind == InputKind.Game)
+{
+    string gameCov = ResolveGameCovPath(meta.InputPath);
+    string? folderCov = ResolveFolderCovPathForGame(meta.InputPath);
 
-            if (meta.Kind == InputKind.Game)
-            {
-                string cov = ResolveGameCovPath(meta.InputPath);
-                if (File.Exists(cov))
-                {
-                    var fi = new FileInfo(cov);
-                    SetPreview(DecodeCovToBitmap(cov), FormatCovInfoLine(Path.GetFileName(cov), fi.Length));
-                }
-                else
-                {
-                    ClearPreview();
-                    string serialInfo = string.IsNullOrWhiteSpace(meta.Serial) ? "(serial: unknown)" : $"(serial: {meta.Serial})";
-                    lblPreview.Text = $"Game: {Path.GetFileName(meta.InputPath)} — cover missing {serialInfo}";
-                }
-                return;
-            }
+    Image? folderImg = null;
+    Image? gameImg = null;
 
-            PreviewGeneratedCov(meta);
+    try
+    {
+        if (!string.IsNullOrWhiteSpace(folderCov) && File.Exists(folderCov))
+            folderImg = DecodeCovToBitmap(folderCov);
+
+        if (File.Exists(gameCov))
+            gameImg = DecodeCovToBitmap(gameCov);
+
+        if (folderImg != null || gameImg != null)
+        {
+            string folderPart = (folderImg != null) ? $"Folder: {Path.GetFileName(folderCov!)}" : "Folder: (missing)";
+            string gamePart = (gameImg != null) ? $"Game: {Path.GetFileName(gameCov)}" : "Game: (missing)";
+            SetDualPreview(folderImg, gameImg, $"{folderPart} | {gamePart}");
+        }
+        else
+        {
+            ClearPreview();
+            string serialInfo = string.IsNullOrWhiteSpace(meta.Serial) ? "(serial: unknown)" : $"(serial: {meta.Serial})";
+            lblPreview.Text = $"Game: {Path.GetFileName(meta.InputPath)} — covers missing {serialInfo}";
+        }
+    }
+    catch (Exception ex)
+    {
+        folderImg?.Dispose();
+        gameImg?.Dispose();
+        ClearPreview();
+        lblPreview.Text = $"Preview error: {ex.Message}";
+    }
+
+    return;
+}
+
+PreviewGeneratedCov(meta);
         }
         private void lvFiles_ColumnClick(object? sender, ColumnClickEventArgs e)
         {
@@ -703,7 +739,7 @@ namespace PicoStationCovMaker
             catch { statusColIndex = -1; }
 
             if (statusColIndex < 0)
-                statusColIndex = 2; // fallback (Input, Output, Status)
+                statusColIndex = 1; // fallback (Input, Status)
 
             if (e.Column != statusColIndex)
                 return;
@@ -833,46 +869,66 @@ namespace PicoStationCovMaker
         private static string FormatCovInfoLine(string fileName, long sizeBytes)
         {
             if (sizeBytes == 32768)
-            return "UNSUPPORTED legacy 16bpp (32768 bytes)";
+                return "UNSUPPORTED legacy 16bpp (32768 bytes)";
             if (sizeBytes == 16896 || sizeBytes == 16912)
-            return $"Preview (.cov): {fileName} — OK • 128×128 • 8bpp indexed + palette • {sizeBytes:N0} bytes";
+                return $"Preview (.cov): {fileName} — OK • 128×128 • 8bpp indexed + palette • {sizeBytes:N0} bytes";
 
             return $"Preview (.cov): {fileName} — INVALID SIZE ({sizeBytes:N0} bytes)";
         }
 
-
         private void SetPreview(Image img, string caption, string? covPathForPalette = null)
-        {
-            _currentPreviewCovPath = covPathForPalette;
-            ClearPreviewImageOnly();
-            picPreview.Image = img;
-            lblPreview.Text = caption;
-            UpdateExportPaletteButton();
-        }
+{
+    // Single preview (game/converted file). Folder preview is cleared.
+    _currentPreviewCovPath = covPathForPalette;
+    ClearPreviewImageOnly();
+    picPreviewFolder.Image = null;
+    picPreview.Image = img;
+    lblPreview.Text = caption;
+    UpdateExportPaletteButton();
+}
 
-        private void ClearPreview()
-        {
-            _currentPreviewCovPath = null;
-            ClearPreviewImageOnly();
-            lblPreview.Text = "Preview: (none)";
-            UpdateExportPaletteButton();
-        }
+private void SetDualPreview(Image? folderImg, Image? gameImg, string caption)
+{
+    // Dual preview: folder cover (left) + game cover (right). Palette export is tied to the game cover by default.
+    _currentPreviewCovPath = null;
+    ClearPreviewImageOnly();
 
-        private void ClearPreviewImageOnly()
-        {
-            if (picPreview.Image != null)
-            {
-                picPreview.Image.Dispose();
-                picPreview.Image = null;
-            }
-        }
+    picPreviewFolder.Image = folderImg;
+    picPreview.Image = gameImg;
+
+    lblPreview.Text = caption;
+    UpdateExportPaletteButton();
+}
+
+private void ClearPreview()
+{
+    _currentPreviewCovPath = null;
+    ClearPreviewImageOnly();
+    lblPreview.Text = "Preview: (none)";
+    UpdateExportPaletteButton();
+}
+
+private void ClearPreviewImageOnly()
+{
+    if (picPreviewFolder.Image != null)
+    {
+        picPreviewFolder.Image.Dispose();
+        picPreviewFolder.Image = null;
+    }
+
+    if (picPreview.Image != null)
+    {
+        picPreview.Image.Dispose();
+        picPreview.Image = null;
+    }
+}
 
         private void UpdateExportPaletteButton()
         {
             try
             {
                 if (btnExportPalette == null)
-                return;
+                    return;
 
                 if (string.IsNullOrWhiteSpace(_currentPreviewCovPath) || !File.Exists(_currentPreviewCovPath))
                 {
@@ -922,7 +978,7 @@ namespace PicoStationCovMaker
                 sfd.FileName = baseName + ".pal";
 
                 if (sfd.ShowDialog(this) != DialogResult.OK)
-                return;
+                    return;
 
                 File.WriteAllBytes(sfd.FileName, palBytes);
                 Log($"Exported palette: {sfd.FileName}");
@@ -1043,7 +1099,7 @@ namespace PicoStationCovMaker
             byte[] sig = br.ReadBytes(8);
             byte[] pngSig = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
             if (sig.Length != 8 || !sig.SequenceEqual(pngSig))
-            throw new InvalidDataException("Not a PNG file: " + path);
+                throw new InvalidDataException("Not a PNG file: " + path);
 
             int width = 0, height = 0;
             byte bitDepth = 0, colorType = 0, interlace = 0;
@@ -1085,13 +1141,13 @@ namespace PicoStationCovMaker
             }
 
             if (width != expectedW || height != expectedH)
-            throw new InvalidDataException($"pngquant output is not {expectedW}x{expectedH}.");
+                throw new InvalidDataException($"pngquant output is not {expectedW}x{expectedH}.");
             if (colorType != 3 || bitDepth != 8)
-            throw new InvalidDataException("pngquant output is not an 8-bit indexed PNG (color type 3, bit depth 8).");
+                throw new InvalidDataException("pngquant output is not an 8-bit indexed PNG (color type 3, bit depth 8).");
             if (interlace != 0)
-            throw new InvalidDataException("Interlaced PNG not supported.");
+                throw new InvalidDataException("Interlaced PNG not supported.");
             if (plte == null || plte.Length % 3 != 0)
-            throw new InvalidDataException("PNG missing PLTE chunk.");
+                throw new InvalidDataException("PNG missing PLTE chunk.");
 
             int palCount = plte.Length / 3;
             var palette = new Color[256];
@@ -1104,12 +1160,12 @@ namespace PicoStationCovMaker
                     g = plte[i * 3 + 1];
                     b = plte[i * 3 + 2];
                     if (trns != null && i < trns.Length)
-                    a = trns[i];
+                        a = trns[i];
                 }
                 else
                 {
                     if (trns != null && i < trns.Length)
-                    a = trns[i];
+                        a = trns[i];
                 }
                 palette[i] = Color.FromArgb(a, r, g, b);
             }
@@ -1126,7 +1182,7 @@ namespace PicoStationCovMaker
                 read += n;
             }
             if (read != raw.Length)
-            throw new InvalidDataException("Failed to decompress PNG image data.");
+                throw new InvalidDataException("Failed to decompress PNG image data.");
 
             // Unfilter
             byte[] indices = new byte[expectedW * expectedH];
@@ -1145,37 +1201,37 @@ namespace PicoStationCovMaker
                 switch (filter)
                 {
                     case 0: // None
-                    break;
+                        break;
                     case 1: // Sub
-                    for (int x = 0; x < expectedW; x++)
-                    {
-                        byte left = (x >= bpp) ? cur[x - bpp] : (byte)0;
-                        cur[x] = (byte)(cur[x] + left);
-                    }
-                    break;
+                        for (int x = 0; x < expectedW; x++)
+                        {
+                            byte left = (x >= bpp) ? cur[x - bpp] : (byte)0;
+                            cur[x] = (byte)(cur[x] + left);
+                        }
+                        break;
                     case 2: // Up
-                    for (int x = 0; x < expectedW; x++)
-                    cur[x] = (byte)(cur[x] + prev[x]);
-                    break;
+                        for (int x = 0; x < expectedW; x++)
+                            cur[x] = (byte)(cur[x] + prev[x]);
+                        break;
                     case 3: // Average
-                    for (int x = 0; x < expectedW; x++)
-                    {
-                        byte left = (x >= bpp) ? cur[x - bpp] : (byte)0;
-                        byte up = prev[x];
-                        cur[x] = (byte)(cur[x] + ((left + up) >> 1));
-                    }
-                    break;
+                        for (int x = 0; x < expectedW; x++)
+                        {
+                            byte left = (x >= bpp) ? cur[x - bpp] : (byte)0;
+                            byte up = prev[x];
+                            cur[x] = (byte)(cur[x] + ((left + up) >> 1));
+                        }
+                        break;
                     case 4: // Paeth
-                    for (int x = 0; x < expectedW; x++)
-                    {
-                        byte a = (x >= bpp) ? cur[x - bpp] : (byte)0;
-                        byte b = prev[x];
-                        byte c = (x >= bpp) ? prev[x - bpp] : (byte)0;
-                        cur[x] = (byte)(cur[x] + PaethPredictor(a, b, c));
-                    }
-                    break;
+                        for (int x = 0; x < expectedW; x++)
+                        {
+                            byte a = (x >= bpp) ? cur[x - bpp] : (byte)0;
+                            byte b = prev[x];
+                            byte c = (x >= bpp) ? prev[x - bpp] : (byte)0;
+                            cur[x] = (byte)(cur[x] + PaethPredictor(a, b, c));
+                        }
+                        break;
                     default:
-                    throw new InvalidDataException("Unsupported PNG filter: " + filter);
+                        throw new InvalidDataException("Unsupported PNG filter: " + filter);
                 }
 
                 Buffer.BlockCopy(cur, 0, indices, dst, expectedW);
@@ -1221,7 +1277,7 @@ namespace PicoStationCovMaker
             string exeDir = AppDomain.CurrentDomain.BaseDirectory;
             string pngquantPath = Path.Combine(exeDir, "Tools", "pngquant.exe");
             if (!File.Exists(pngquantPath))
-            throw new FileNotFoundException("pngquant.exe not found. Place it at: " + pngquantPath);
+                throw new FileNotFoundException("pngquant.exe not found. Place it at: " + pngquantPath);
 
             using var src = LoadImageNoLock(inputPath);
             using var square = CenterCropToSquare(src);
@@ -1255,7 +1311,7 @@ namespace PicoStationCovMaker
                     p.WaitForExit();
 
                     if (p.ExitCode != 0 || !File.Exists(tmp8bpp))
-                    throw new InvalidOperationException("pngquant failed.\n" + stderr + (string.IsNullOrWhiteSpace(stdout) ? "" : ("\n" + stdout)));
+                        throw new InvalidOperationException("pngquant failed.\n" + stderr + (string.IsNullOrWhiteSpace(stdout) ? "" : ("\n" + stdout)));
                 }
 
                 // Read PLTE + tRNS reliably (System.Drawing is unreliable for indexed alpha).
@@ -1281,12 +1337,12 @@ namespace PicoStationCovMaker
                     byte a = c.A;
                     ushort psx = 0x0000;
                     if (a >= 32)
-                    psx = semi;
+                        psx = semi;
                     if (a >= 224)
                     {
                         psx = solid;
                         if (psx == 0x0000)
-                        psx = 0x0421;
+                            psx = 0x0421;
                     }
 
                     int o = i * 2;
@@ -1333,7 +1389,7 @@ namespace PicoStationCovMaker
             {
                 AddColor(_root, r, g, b, 0);
                 while (_leafCount > _maxColors)
-                Reduce();
+                    Reduce();
             }
 
             private void AddColor(Node node, byte r, byte g, byte b, int level)
@@ -1382,7 +1438,7 @@ namespace PicoStationCovMaker
             {
                 int level = 8;
                 while (level > 0 && _reducible[level] == null)
-                level--;
+                    level--;
 
                 var node = _reducible[level];
                 if (node == null) return;
@@ -1434,7 +1490,7 @@ namespace PicoStationCovMaker
                 _palette = new List<Color>(_leafCount);
                 BuildPalette(_root);
                 if (_palette.Count == 0)
-                _palette.Add(Color.Black);
+                    _palette.Add(Color.Black);
                 return _palette;
             }
 
@@ -1466,7 +1522,7 @@ namespace PicoStationCovMaker
             private int GetPaletteIndex(Node node, byte r, byte g, byte b, int level)
             {
                 if (node.IsLeaf)
-                return node.PaletteIndex;
+                    return node.PaletteIndex;
 
                 int idx = GetIndex(r, g, b, level);
                 var child = node.Children[idx];
@@ -1491,10 +1547,10 @@ namespace PicoStationCovMaker
             // 8bpp .cov: palette (512 bytes) + indices (16384 bytes) = 16896
             // Optional serial appended (+16 bytes) = 16912
             if (data.Length == 16896 || data.Length == 16912)
-            return Decode8bppCovToBitmap(data);
+                return Decode8bppCovToBitmap(data);
 
             if (data.Length == 32768)
-            throw new InvalidDataException($"Unsupported legacy 16bpp .cov: {data.Length} bytes. This build supports only 16896/16912-byte 8bpp .cov files.");
+                throw new InvalidDataException($"Unsupported legacy 16bpp .cov: {data.Length} bytes. This build supports only 16896/16912-byte 8bpp .cov files.");
 
             throw new InvalidDataException($"Invalid .cov size: {data.Length} bytes (expected 16896 or 16912).");
         }
@@ -1762,8 +1818,10 @@ namespace PicoStationCovMaker
             };
 
             if (dlg.ShowDialog(this) != DialogResult.OK)
-            return;
+                return;
 
+            _lastSdRoot = dlg.SelectedPath;
+            btnOpenSd.Enabled = !string.IsNullOrWhiteSpace(_lastSdRoot) && Directory.Exists(_lastSdRoot);
             btnConvert.Enabled = false;
             btnClear.Enabled = false;
             btnOutputFolder.Enabled = false;
@@ -1774,6 +1832,11 @@ namespace PicoStationCovMaker
                 Log($"Scanning SD root: {dlg.SelectedPath}");
                 await ScanSdAsync(dlg.SelectedPath);
                 Log("SD scan done.");
+
+                // After a successful SD scan, try to auto-load menu config/layout for preview
+                LoadMenuConfigIfPossible(showErrors: false);
+                LoadMenuLayout();
+                pnlMenuPreview.Invalidate();
             }
             catch (Exception ex)
             {
@@ -1804,9 +1867,9 @@ namespace PicoStationCovMaker
             {
                 var ext = Path.GetExtension(f);
                 if (ext.Equals(".cue", StringComparison.OrdinalIgnoreCase))
-                cueFiles.Add(f);
+                    cueFiles.Add(f);
                 else if (ext.Equals(".bin", StringComparison.OrdinalIgnoreCase))
-                binFiles.Add(f);
+                    binFiles.Add(f);
             }
 
             // Rule:
@@ -1825,7 +1888,7 @@ namespace PicoStationCovMaker
             {
                 var dir = Path.GetDirectoryName(bin);
                 if (dir != null && cueDirs.Contains(dir))
-                continue; // ignore multi-bin tracks
+                    continue; // ignore multi-bin tracks
 
                 entries.Add((bin, bin));
             }
@@ -1843,7 +1906,7 @@ namespace PicoStationCovMaker
 
                 string? serial = null;
                 if (!string.IsNullOrWhiteSpace(firstBin) && File.Exists(firstBin))
-                serial = await Task.Run(() => ExtractPs1SerialFromBin(firstBin));
+                    serial = await Task.Run(() => ExtractPs1SerialFromBin(firstBin));
 
                 // Fallback: some images do not contain a visible SLUS/SLES/etc. string.
                 // If no serial is found, compute a fingerprint (PVD CRC32) and try to resolve
@@ -1878,7 +1941,21 @@ namespace PicoStationCovMaker
                     }
                 }
 
-                string status = covExists
+                
+                // LibCrypt helper: if this game is in libcrypt list, ensure matching .lsd exists next to the .cue
+                if (serial != null && gamePath.EndsWith(".cue", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        EnsureLibcryptLsdForCue(gamePath, serial);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"LibCrypt LSD check error for {Path.GetFileName(gamePath)}: {ex.Message}");
+                    }
+                }
+
+string status = covExists
                 ? "SKIPPED • cover exists"
                 : (serial != null
                     ? (serialFromMap
@@ -1894,7 +1971,7 @@ namespace PicoStationCovMaker
                     OriginalIndex = _nextOriginalIndex++
                 };
 
-                var item = new ListViewItem(new[] { gamePath, covPath, status })
+                var item = new ListViewItem(new[] { gamePath, status })
                 {
                     Tag = meta
                 };
@@ -1917,14 +1994,14 @@ namespace PicoStationCovMaker
                 {
                     var line = raw.Trim();
                     if (!line.StartsWith("FILE", StringComparison.OrdinalIgnoreCase))
-                    continue;
+                        continue;
 
                     string? filePart = null;
 
                     int q1 = line.IndexOf('\"');
                     int q2 = q1 >= 0 ? line.IndexOf('\"', q1 + 1) : -1;
                     if (q1 >= 0 && q2 > q1)
-                    filePart = line.Substring(q1 + 1, q2 - q1 - 1);
+                        filePart = line.Substring(q1 + 1, q2 - q1 - 1);
                     else
                     {
                         var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
@@ -1932,10 +2009,10 @@ namespace PicoStationCovMaker
                     }
 
                     if (string.IsNullOrWhiteSpace(filePart))
-                    continue;
+                        continue;
 
                     if (!filePart.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
-                    continue;
+                        continue;
 
                     string dir = Path.GetDirectoryName(cuePath)!;
                     string candidate = Path.GetFullPath(Path.Combine(dir, filePart));
@@ -1961,7 +2038,7 @@ namespace PicoStationCovMaker
 
             try
             {
-                string mapPath = Path.Combine(AppContext.BaseDirectory, "PicoStationCovMaker.serialmap.json");
+                string mapPath = Path.Combine(AppContext.BaseDirectory, "Tools", "PicoStationCovMaker.serialmap.json");
                 if (!File.Exists(mapPath))
                     return false;
 
@@ -1990,6 +2067,157 @@ namespace PicoStationCovMaker
                 return false;
             }
         }
+
+        // ---------------- LibCrypt (.lsd) helper ----------------
+                // ---------------- LibCrypt (.lsd) helper ----------------
+        private sealed class LibcryptGameInfo
+        {
+            public string? Title { get; set; }
+            public string? DefaultLsd { get; set; } // filename like "SCES-02431.lsd"
+            public Dictionary<string, string> VariantsByPvdCrc { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); // "DA3140E8" => "SCES-02431P.lsd"
+        }
+
+        private static Dictionary<string, LibcryptGameInfo>? _libcryptGames;
+
+        private static bool EnsureLibcryptLoaded()
+        {
+            if (_libcryptGames != null) return _libcryptGames.Count > 0;
+
+            _libcryptGames = new Dictionary<string, LibcryptGameInfo>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                // Prefer next-to-exe, then Tools\
+                string p1 = Path.Combine(AppContext.BaseDirectory, "libcrypt_games_with_variants.json");
+                string p2 = Path.Combine(AppContext.BaseDirectory, "Tools", "libcrypt_games_with_variants.json");
+
+                string jsonPath = File.Exists(p1) ? p1 : (File.Exists(p2) ? p2 : "");
+                if (string.IsNullOrWhiteSpace(jsonPath))
+                    return false;
+
+                using var fs = File.OpenRead(jsonPath);
+                using var doc = JsonDocument.Parse(fs);
+
+                if (!doc.RootElement.TryGetProperty("games", out var gamesObj) || gamesObj.ValueKind != JsonValueKind.Object)
+                    return false;
+
+                foreach (var prop in gamesObj.EnumerateObject())
+                {
+                    string serialDash = NormalizeSerial(prop.Name) ?? prop.Name.Trim().ToUpperInvariant();
+                    if (string.IsNullOrWhiteSpace(serialDash))
+                        continue;
+
+                    var info = new LibcryptGameInfo();
+
+                    if (prop.Value.ValueKind == JsonValueKind.Object)
+                    {
+                        if (prop.Value.TryGetProperty("title", out var tEl) && tEl.ValueKind == JsonValueKind.String)
+                            info.Title = tEl.GetString();
+
+                        if (prop.Value.TryGetProperty("lsd", out var lsdEl) && lsdEl.ValueKind == JsonValueKind.Object)
+                        {
+                            if (lsdEl.TryGetProperty("default", out var dEl) && dEl.ValueKind == JsonValueKind.String)
+                                info.DefaultLsd = dEl.GetString();
+
+                            if (lsdEl.TryGetProperty("variants", out var vEl) && vEl.ValueKind == JsonValueKind.Object)
+                            {
+                                foreach (var v in vEl.EnumerateObject())
+                                {
+                                    var crc = v.Name?.Trim().ToUpperInvariant();
+                                    if (string.IsNullOrWhiteSpace(crc)) continue;
+
+                                    if (v.Value.ValueKind == JsonValueKind.String)
+                                    {
+                                        var fn = v.Value.GetString();
+                                        if (!string.IsNullOrWhiteSpace(fn))
+                                            info.VariantsByPvdCrc[crc] = fn!;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    _libcryptGames[serialDash] = info;
+                }
+
+                return _libcryptGames.Count > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool IsLibcryptSerial(string serialDash)
+        {
+            if (string.IsNullOrWhiteSpace(serialDash)) return false;
+            if (!EnsureLibcryptLoaded()) return false;
+
+            string key = NormalizeSerial(serialDash) ?? serialDash.Trim().ToUpperInvariant();
+            return _libcryptGames!.ContainsKey(key);
+        }
+
+
+        private void EnsureLibcryptLsdForCue(string cuePath, string serialDash)
+        { 
+            if (string.IsNullOrWhiteSpace(cuePath) || string.IsNullOrWhiteSpace(serialDash))
+                return;
+
+            if (!EnsureLibcryptLoaded())
+                return;
+
+            string serialKey = NormalizeSerial(serialDash) ?? serialDash.Trim().ToUpperInvariant();
+            if (!_libcryptGames!.TryGetValue(serialKey, out var info))
+                return;
+
+            string dir = Path.GetDirectoryName(cuePath) ?? "";
+            if (string.IsNullOrWhiteSpace(dir))
+                return;
+
+            string cueBase = Path.GetFileNameWithoutExtension(cuePath);
+            if (string.IsNullOrWhiteSpace(cueBase))
+                return;
+
+            string destLsd = Path.Combine(dir, cueBase + ".lsd");
+            if (File.Exists(destLsd))
+                return; // already present
+
+            // Decide which LSD filename to use:
+            // - default: from JSON "lsd.default" (fallback to "<SERIAL>.lsd")
+            // - variant: if JSON has "lsd.variants" keyed by PVD CRC32 and we can compute the cue's PVD CRC32
+            string srcFileName = !string.IsNullOrWhiteSpace(info.DefaultLsd) ? info.DefaultLsd!.Trim() : (serialKey + ".lsd");
+
+            if (info.VariantsByPvdCrc.Count > 0)
+            {
+                string? pvdHex = TryComputePvdCrc32Hex(cuePath, null);
+                if (!string.IsNullOrWhiteSpace(pvdHex))
+                {
+                    pvdHex = pvdHex.Trim().ToUpperInvariant();
+                    if (info.VariantsByPvdCrc.TryGetValue(pvdHex, out var variantFn) && !string.IsNullOrWhiteSpace(variantFn))
+                        srcFileName = variantFn.Trim();
+                }
+            }
+
+            // Source LSD files are stored in Tools\LSD\
+            string src1 = Path.Combine(AppContext.BaseDirectory, "Tools", "LSD", srcFileName);
+            string src2 = Path.Combine(AppContext.BaseDirectory, "tools", "LSD", srcFileName); // just in case
+
+            string src = File.Exists(src1) ? src1 : (File.Exists(src2) ? src2 : "");
+            if (string.IsNullOrWhiteSpace(src))
+            {
+                Log($"LibCrypt detected for {Path.GetFileName(cuePath)} ({serialKey}), but source LSD not found: Tools\\LSD\\{srcFileName}");
+                return;
+            }
+
+            File.Copy(src, destLsd, overwrite: false);
+
+            if (!string.IsNullOrWhiteSpace(info.Title))
+                Log($"LibCrypt: added {Path.GetFileName(destLsd)} for {Path.GetFileName(cuePath)} ({serialKey}) — {info.Title}");
+            else
+                Log($"LibCrypt: added {Path.GetFileName(destLsd)} for {Path.GetFileName(cuePath)} ({serialKey})");
+        }
+
+
 
         private static string? TryComputePvdCrc32Hex(string gamePath, string? firstBin)
         {
@@ -2181,10 +2409,10 @@ namespace PicoStationCovMaker
             const int ChunkSize = 1024 * 1024;
             const int Overlap = 64;
 
-	            // Support both classic disc IDs like "SLUS_012.06" and packed/product codes like "SLUSP012.06".
-	            // Normalize to UI format: "SLUS-01206".
-	            var rx = new Regex(@"(?<![A-Z0-9])(SCUS|SLUS|SLES|SCES|SCPS|SLPS|SCPM|SIPS|SLED|SLPM|SCED)(?:[_P-]?)([0-9]{3})\.([0-9]{2})(?![0-9])",
-                RegexOptions.Compiled);
+            // Support both classic disc IDs like "SLUS_012.06" and packed/product codes like "SLUSP012.06".
+            // Normalize to UI format: "SLUS-01206".
+            var rx = new Regex(@"(?<![A-Z0-9])(SCUS|SLUS|SLES|SCES|SCPS|SLPS|SCPM|SIPS|SLED|SLPM|SCED)(?:[_P-]?)([0-9]{3})\.([0-9]{2})(?![0-9])",
+            RegexOptions.Compiled);
 
             // Support alternate split IDs like "SLUS_00.220" (2+3 digits).
             // Normalize to UI format: "SLUS-00220".
@@ -2192,9 +2420,9 @@ namespace PicoStationCovMaker
                 RegexOptions.Compiled);
 
 
-	            // Support LSP serials like "LSP20033.001".
-	            // Normalize to UI format: "LSP-200330" (use 5 digits before the dot + first digit after the dot).
-	            var rxLsp = new Regex(@"(?<![A-Z0-9])LSP([0-9]{5})\.([0-9]{3})(?![0-9])", RegexOptions.Compiled);
+            // Support LSP serials like "LSP20033.001".
+            // Normalize to UI format: "LSP-200330" (use 5 digits before the dot + first digit after the dot).
+            var rxLsp = new Regex(@"(?<![A-Z0-9])LSP([0-9]{5})\.([0-9]{3})(?![0-9])", RegexOptions.Compiled);
 
             using var fs = new FileStream(binPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             long remaining = Math.Min(fs.Length, MaxBytesToScan);
@@ -2211,14 +2439,14 @@ namespace PicoStationCovMaker
                 int total = keep + read;
                 string s = System.Text.Encoding.Latin1.GetString(buf, 0, total);
 
-	            var mLsp = rxLsp.Match(s);
-	            if (mLsp.Success)
-	            {
-	                string digits = mLsp.Groups[1].Value + mLsp.Groups[2].Value.Substring(0, 1);
-	                return $"LSP-{digits}";
-	            }
+                var mLsp = rxLsp.Match(s);
+                if (mLsp.Success)
+                {
+                    string digits = mLsp.Groups[1].Value + mLsp.Groups[2].Value.Substring(0, 1);
+                    return $"LSP-{digits}";
+                }
 
-                
+
 
                 var mAlt = rxAltSplit.Match(s);
                 if (mAlt.Success)
@@ -2230,11 +2458,11 @@ namespace PicoStationCovMaker
 
                 var m = rx.Match(s);
                 if (m.Success)
-	                {
-	                    string prefix = m.Groups[1].Value;
-	                    string digits = m.Groups[2].Value + m.Groups[3].Value;
-	                    return $"{prefix}-{digits}";
-	                }
+                {
+                    string prefix = m.Groups[1].Value;
+                    string digits = m.Groups[2].Value + m.Groups[3].Value;
+                    return $"{prefix}-{digits}";
+                }
 
                 keep = Math.Min(Overlap, total);
                 Buffer.BlockCopy(buf, total - keep, buf, 0, keep);
@@ -2358,24 +2586,74 @@ namespace PicoStationCovMaker
 
         private CoverDownloadType GetSelectedCoverDownloadType()
         {
-            // Designer sets rbDlCover.Checked = true by default
-            if (rbDl3d != null && rbDl3d.Checked) return CoverDownloadType.Cover3D;
-            if (rbDlCd != null && rbDlCd.Checked) return CoverDownloadType.Disc;
+            // Legacy single-selection fallback: use the "Game" dropdown if present.
+            if (cmbGameCoverType != null)
+                return ParseCoverTypeFromCombo(cmbGameCoverType, defaultValue: CoverDownloadType.Cover);
+
+            // No UI selection available; default to "Cover".
             return CoverDownloadType.Cover;
         }
+
+        private CoverDownloadType GetSelectedFolderCoverDownloadType()
+        {
+            // Folder cover defaults to "Cover" (Default) when not present.
+            if (cmbFolderCoverType != null)
+                return ParseCoverTypeFromCombo(cmbFolderCoverType, defaultValue: CoverDownloadType.Cover);
+
+            // If UI is still old, fall back to the single selection.
+            return GetSelectedCoverDownloadType();
+        }
+
+        private CoverDownloadType GetSelectedGameCoverDownloadType()
+        {
+            // Game cover defaults to "Cover" (Default) when not present.
+            if (cmbGameCoverType != null)
+                return ParseCoverTypeFromCombo(cmbGameCoverType, defaultValue: CoverDownloadType.Cover);
+
+            return GetSelectedCoverDownloadType();
+        }
+
+        private static CoverDownloadType ParseCoverTypeFromCombo(ComboBox combo, CoverDownloadType defaultValue)
+        {
+            try
+            {
+                object? sel = combo.SelectedItem;
+                string s = (sel?.ToString() ?? combo.Text ?? string.Empty).Trim();
+
+                if (s.Equals("3D", StringComparison.OrdinalIgnoreCase) ||
+                    s.Equals("Cover3D", StringComparison.OrdinalIgnoreCase))
+                    return CoverDownloadType.Cover3D;
+
+                if (s.Equals("CD", StringComparison.OrdinalIgnoreCase) ||
+                    s.Equals("Disc", StringComparison.OrdinalIgnoreCase))
+                    return CoverDownloadType.Disc;
+
+                if (s.Equals("Default", StringComparison.OrdinalIgnoreCase) ||
+                    s.Equals("Cover", StringComparison.OrdinalIgnoreCase))
+                    return CoverDownloadType.Cover;
+
+                return defaultValue;
+            }
+            catch
+            {
+                return defaultValue;
+            }
+        }
+
 
         private string GetCoverDownloadBaseUrl(CoverDownloadType t)
         {
             // User can change the base URL via the dropdown.
-            // Support either:
-            //  - repo root:  https://.../main
-            //  - already pointing at covers: https://.../main/covers/default/
+            // Support:
+            //  - Online: https://.../main (or .../main/covers/default/)
+            //  - Local folder: C:\...\picostation-covers (or ...\covers\default\)
+            //
+            // Folder structure (both online and local):
+            //   <root>/covers/default/<SERIAL>.{cov|png|jpg}
+            //   <root>/covers/3d/<SERIAL>.{cov|png|jpg}
+            //   <root>/covers/cd/<SERIAL>.{cov|png|jpg}
+
             string root = GetCoverBaseUrl();
-            int coversIdx = root.IndexOf("/covers/", StringComparison.OrdinalIgnoreCase);
-            if (coversIdx >= 0)
-            {
-                root = root.Substring(0, coversIdx);
-            }
 
             string sub = t switch
             {
@@ -2385,26 +2663,108 @@ namespace PicoStationCovMaker
                 _ => "default"
             };
 
+            // Detect local path (absolute path / UNC / file://).
+            if (TryNormalizeLocalCoverRoot(root, out var localRoot))
+            {
+                // If user pointed directly into \covers\..., strip it back to repo root.
+                int coversIdx = IndexOfCoversSegment(localRoot);
+                if (coversIdx >= 0)
+                    localRoot = localRoot.Substring(0, coversIdx);
+
+                string dir = Path.Combine(localRoot, "covers", sub);
+                return dir.TrimEnd(Path.DirectorySeparatorChar, '/', '\\') + Path.DirectorySeparatorChar;
+            }
+
+            // Online URL
+            int coversIdxUrl = root.IndexOf("/covers/", StringComparison.OrdinalIgnoreCase);
+            if (coversIdxUrl >= 0)
+                root = root.Substring(0, coversIdxUrl);
+
             return $"{root.TrimEnd('/')}/covers/{sub}/";
+        }
+
+        private static bool TryNormalizeLocalCoverRoot(string input, out string localPath)
+        {
+            localPath = "";
+            if (string.IsNullOrWhiteSpace(input))
+                return false;
+
+            input = input.Trim();
+
+            // file:// URL support
+            if (Uri.TryCreate(input, UriKind.Absolute, out var uri) && uri.IsFile)
+            {
+                localPath = uri.LocalPath;
+                return Directory.Exists(localPath);
+            }
+
+            // Online URLs are not local
+            if (input.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                input.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // Normalize slashes for Windows paths
+            var p = input.Replace('/', Path.DirectorySeparatorChar);
+
+            // Accept absolute drive paths + UNC paths
+            if (Path.IsPathRooted(p) || p.StartsWith("\\\\"))
+            {
+                if (Directory.Exists(p))
+                {
+                    localPath = p.TrimEnd(Path.DirectorySeparatorChar);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        private static int IndexOfCoversSegment(string path)
+        {
+            // Finds "\\covers\\" (case-insensitive) and returns the index where it starts.
+            try
+            {
+                string needle = $"{Path.DirectorySeparatorChar}covers{Path.DirectorySeparatorChar}";
+                return path.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        private static bool IsHttpUrl(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            s = s.Trim();
+            return s.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                || s.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task DownloadCoversAsync()
         {
             var gameItems = lvFiles.Items
-            .Cast<ListViewItem>()
-            .Select(it => (it, meta: it.Tag as FileItemMeta))
-            .Where(t => t.meta != null && t.meta.Kind == InputKind.Game)
-            .ToList();
+                .Cast<ListViewItem>()
+                .Select(it => (it, meta: it.Tag as FileItemMeta))
+                .Where(t => t.meta != null && t.meta.Kind == InputKind.Game)
+                .ToList();
 
             if (gameItems.Count == 0)
             {
                 MessageBox.Show(this, "No scanned games found. Use 'Scan SD...' first.", "Download covers",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            var dlType = GetSelectedCoverDownloadType();
-            string baseUrl = GetCoverDownloadBaseUrl(dlType);
+            // New behavior: two cover targets per game:
+            //  - Folder cover: <parent>\<foldername>.cov (shown when selecting the folder in PicoStation)
+            //  - Game cover:   <folder>\<gamefilename>.cov (shown inside the folder)
+            var folderType = GetSelectedFolderCoverDownloadType();
+            var gameType = GetSelectedGameCoverDownloadType();
+
+            string folderBaseUrl = GetCoverDownloadBaseUrl(folderType);
+            string gameBaseUrl = GetCoverDownloadBaseUrl(gameType);
 
             bool overwriteExisting = chkDlOverwrite != null && chkDlOverwrite.Checked;
 
@@ -2414,47 +2774,52 @@ namespace PicoStationCovMaker
 
             int ok = 0, skipped = 0, noSerial = 0, notFound = 0, fail = 0;
 
-            using var http = new HttpClient();
-            http.Timeout = TimeSpan.FromSeconds(25);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("PicoStationCovMaker/1.0");
+            bool folderIsRemote = IsHttpUrl(folderBaseUrl);
+            bool gameIsRemote = IsHttpUrl(gameBaseUrl);
 
-            for (int i = 0; i < gameItems.Count; i++)
+            HttpClient? httpFolder = null;
+            HttpClient? httpGame = null;
+
+            if (folderIsRemote)
             {
-                var (item, meta) = gameItems[i];
-                progressBar.Value = i + 1;
+                httpFolder = new HttpClient();
+                httpFolder.Timeout = TimeSpan.FromSeconds(25);
+                httpFolder.DefaultRequestHeaders.UserAgent.ParseAdd("PicoStationCovMaker/1.0");
+            }
 
-                string gamePath = meta!.InputPath;
-                string covPath = ResolveGameCovPath(gamePath);
-
-                if (File.Exists(covPath) && !overwriteExisting)
+            if (gameIsRemote)
+            {
+                // Reuse the same client when both base URLs are remote and identical.
+                if (folderIsRemote && string.Equals(folderBaseUrl, gameBaseUrl, StringComparison.OrdinalIgnoreCase))
                 {
-                    item.SubItems[2].Text = "SKIPPED • .cov exists";
-                    skipped++;
-                    continue;
+                    httpGame = httpFolder;
                 }
-
-                string? serial = NormalizeSerial(meta.Serial);
-                if (string.IsNullOrWhiteSpace(serial))
+                else
                 {
-                    item.SubItems[2].Text = "NO SERIAL";
-                    noSerial++;
-                    continue;
+                    httpGame = new HttpClient();
+                    httpGame.Timeout = TimeSpan.FromSeconds(25);
+                    httpGame.DefaultRequestHeaders.UserAgent.ParseAdd("PicoStationCovMaker/1.0");
                 }
+            }
 
-                item.SubItems[2].Text = $"Downloading {dlType} • {serial}...";
-                await Task.Yield();
+            async Task<(bool success, bool skipped, bool notFound)> DownloadOneAsync(
+                string serial, string baseUrl, bool isRemote, HttpClient? http, string targetCovPath, CoverDownloadType typeForStatus)
+            {
+                if (File.Exists(targetCovPath) && !overwriteExisting)
+                    return (success: false, skipped: true, notFound: false);
 
-                try
+                // Try .cov first, then .png/.jpg and convert.
+                string? foundExt = null;
+                string? foundRef = null;
+                byte[]? downloaded = null;
+                string? foundLocalImagePath = null;
+
+                foreach (var ext in new[] { ".cov", ".png", ".jpg" })
                 {
-                    // Try .cov first (PicoStation-ready). If not found, try .png/.jpg and convert locally.
-                    string? foundExt = null;
-                    string? foundUrl = null;
-                    byte[]? downloaded = null;
-
-                    foreach (var ext in new[] { ".cov", ".png", ".jpg" })
+                    if (isRemote)
                     {
                         string candidateUrl = $"{baseUrl}{serial}{ext}";
-                        using var resp = await http.GetAsync(candidateUrl);
+                        using var resp = await http!.GetAsync(candidateUrl);
 
                         if (resp.StatusCode == HttpStatusCode.NotFound)
                             continue;
@@ -2466,46 +2831,65 @@ namespace PicoStationCovMaker
                             throw new IOException($"Downloaded file was empty. URL: {candidateUrl}");
 
                         foundExt = ext;
-                        foundUrl = candidateUrl;
+                        foundRef = candidateUrl;
                         downloaded = bytes;
                         break;
                     }
-
-                    if (foundExt == null || downloaded == null || foundUrl == null)
+                    else
                     {
-                        item.SubItems[2].Text = $"NOT FOUND • {dlType} • {serial}";
-                        notFound++;
-                        continue;
+                        string candidatePath = Path.Combine(baseUrl, serial + ext);
+                        if (!File.Exists(candidatePath))
+                            continue;
+
+                        foundExt = ext;
+                        foundRef = candidatePath;
+
+                        if (ext.Equals(".cov", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloaded = File.ReadAllBytes(candidatePath);
+                        }
+                        else
+                        {
+                            foundLocalImagePath = candidatePath;
+                        }
+
+                        break;
                     }
+                }
 
-                    if (foundExt.Equals(".cov", StringComparison.OrdinalIgnoreCase))
+                if (foundExt == null || (downloaded == null && foundLocalImagePath == null) || foundRef == null)
+                    return (success: false, skipped: false, notFound: true);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(targetCovPath)!);
+
+                if (foundExt.Equals(".cov", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (downloaded == null)
+                        throw new IOException($"Internal error: cover bytes were null for .cov ({foundRef}).");
+
+                    if (downloaded.Length != 16896 && downloaded.Length != 16912)
+                        throw new IOException($"Unexpected .cov size {downloaded.Length} bytes. Expected 16896 or 16912. URL: {foundRef}");
+
+                    var data = EnsureSerialFooter(downloaded, serial);
+                    File.WriteAllBytes(targetCovPath, data);
+                }
+                else
+                {
+                    // Convert image -> .cov
+                    if (!isRemote && !string.IsNullOrWhiteSpace(foundLocalImagePath))
                     {
-                        // Expected sizes:
-                        //  - 8bpp: 512 palette + 16384 indices = 16896 bytes (or 16912 with 16-byte serial)
-                        if (downloaded.Length != 16896 && downloaded.Length != 16912)
-                            throw new IOException($"Unexpected .cov size {downloaded.Length} bytes. Expected 16896 or 16912. URL: {foundUrl}");
-
-                        var data = EnsureSerialFooter(downloaded, serial);
-                        File.WriteAllBytes(covPath, data);
+                        ConvertImageToCov8bpp(foundLocalImagePath!, targetCovPath);
                     }
                     else
                     {
-                        // Downloaded an image; convert using the same pipeline as manual conversion.
                         string tempDir = Path.Combine(Path.GetTempPath(), "PicoStationCovMaker");
                         Directory.CreateDirectory(tempDir);
                         string tmpImg = Path.Combine(tempDir, Guid.NewGuid().ToString("N") + foundExt);
 
                         try
                         {
-                            File.WriteAllBytes(tmpImg, downloaded);
-
-                            Directory.CreateDirectory(Path.GetDirectoryName(covPath)!);
-                            ConvertImageToCov8bpp(tmpImg, covPath);
-
-                            // Always ensure the 16-byte serial footer area exists (16912 total).
-                            var covBytes = File.ReadAllBytes(covPath);
-                            covBytes = EnsureFooter16912(covBytes, serial);
-                            File.WriteAllBytes(covPath, covBytes);
+                            File.WriteAllBytes(tmpImg, downloaded!);
+                            ConvertImageToCov8bpp(tmpImg, targetCovPath);
                         }
                         finally
                         {
@@ -2513,26 +2897,108 @@ namespace PicoStationCovMaker
                         }
                     }
 
-                    item.SubItems[1].Text = covPath;
-                    item.SubItems[2].Text = $"OK • {dlType} • {serial}";
-                    ok++;
-
-                    if (item.Selected)
-                    lvFiles_SelectedIndexChanged(null, EventArgs.Empty);
+                    var covBytes = File.ReadAllBytes(targetCovPath);
+                    covBytes = EnsureFooter16912(covBytes, serial);
+                    File.WriteAllBytes(targetCovPath, covBytes);
                 }
-                catch (Exception ex)
+
+                return (success: true, skipped: false, notFound: false);
+            }
+
+            try
+            {
+                for (int i = 0; i < gameItems.Count; i++)
                 {
-                    item.SubItems[2].Text = "ERROR";
-                    Log($"Cover ERROR for {serial}: {ex.Message}");
-                    fail++;
-                }
+                    var (item, meta) = gameItems[i];
+                    progressBar.Value = i + 1;
 
-                if (i % 20 == 0)
-                await Task.Yield();
+                    string gamePath = meta!.InputPath;
+                    string gameCovPath = ResolveGameCovPath(gamePath);
+
+                    // Folder cover path: <parent of game dir>\<game dir name>.cov
+                    string gameDir = Path.GetDirectoryName(gamePath)!;
+                    string folderName = Path.GetFileName(gameDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                    string folderCovPath = Path.Combine(Path.GetDirectoryName(gameDir)!, folderName + ".cov");
+
+                    string? serial = NormalizeSerial(meta.Serial);
+                    if (string.IsNullOrWhiteSpace(serial))
+                    {
+                        item.SubItems[1].Text = "NO SERIAL";
+                        noSerial++;
+                        continue;
+                    }
+
+                    item.SubItems[1].Text = $"Downloading Folder:{folderType} + Game:{gameType} • {serial}...";
+                    await Task.Yield();
+
+                    bool anyOk = false;
+                    bool anySkip = false;
+                    bool anyNotFound = false;
+
+                    try
+                    {
+                        // Folder cover
+                        var rFolder = await DownloadOneAsync(serial, folderBaseUrl, folderIsRemote, httpFolder, folderCovPath, folderType);
+                        anyOk |= rFolder.success;
+                        anySkip |= rFolder.skipped;
+                        anyNotFound |= rFolder.notFound;
+
+                        // Game cover (inside folder)
+                        var rGame = await DownloadOneAsync(serial, gameBaseUrl, gameIsRemote, httpGame, gameCovPath, gameType);
+                        anyOk |= rGame.success;
+                        anySkip |= rGame.skipped;
+                        anyNotFound |= rGame.notFound;
+
+                        if (anyOk)
+                        {
+                            item.SubItems[1].Text = $"OK • Folder:{folderType} • Game:{gameType} • {serial}";
+                            ok++;
+                        }
+                        else if (anySkip && !anyNotFound)
+                        {
+                            item.SubItems[1].Text = $"SKIPPED • exists • Folder:{folderType} • Game:{gameType} • {serial}";
+                            skipped++;
+                        }
+                        else if (anyNotFound && !anyOk)
+                        {
+                            item.SubItems[1].Text = $"NOT FOUND • Folder/Game • {serial}";
+                            notFound++;
+                        }
+                        else
+                        {
+                            // Mixed: e.g. one skipped, one not found.
+                            string status = (anySkip ? "SKIP" : "NO");
+                            string nf = (anyNotFound ? "NF" : "OK");
+                            item.SubItems[1].Text = $"PARTIAL • {status}/{nf} • {serial}";
+                            // Count as skipped or notFound depending on what happened
+                            if (anyNotFound) notFound++; else skipped++;
+                        }
+
+                        if (item.Selected)
+                            lvFiles_SelectedIndexChanged(null, EventArgs.Empty);
+                    }
+                    catch (Exception ex)
+                    {
+                        item.SubItems[1].Text = "ERROR";
+                        Log($"Cover ERROR for {serial}: {ex.Message}");
+                        fail++;
+                    }
+
+                    if (i % 20 == 0)
+                        await Task.Yield();
+                }
+            }
+            finally
+            {
+                // Only dispose httpGame when it isn't the same instance as httpFolder
+                if (httpGame != null && !ReferenceEquals(httpGame, httpFolder))
+                    httpGame.Dispose();
+                httpFolder?.Dispose();
             }
 
             Log($"Download covers done. OK: {ok}, Skipped: {skipped}, NoSerial: {noSerial}, NotFound: {notFound}, Failed: {fail}");
         }
+
 
         // ----------------------------------------------------------
 
@@ -2595,7 +3061,8 @@ namespace PicoStationCovMaker
                     _config.CoverBaseUrls.Insert(0, cur);
 
                 SaveConfig();
-                RefreshCoverUrlDropdownFromConfig(cur);
+                if (cmbCoverBaseUrl == null || !cmbCoverBaseUrl.DroppedDown)
+                    RefreshCoverUrlDropdownFromConfig(cur);
             }
 
             SaveCoverSourceSettings();
@@ -2616,7 +3083,8 @@ namespace PicoStationCovMaker
                         _config.CoverBaseUrls.Insert(0, DefaultCoverBaseUrl);
                     SaveConfig();
 
-                    RefreshCoverUrlDropdownFromConfig(DefaultCoverBaseUrl);
+                    if (cmbCoverBaseUrl == null || !cmbCoverBaseUrl.DroppedDown)
+                        RefreshCoverUrlDropdownFromConfig(DefaultCoverBaseUrl);
                 }
 
                 SaveCoverSourceSettings();
@@ -2629,29 +3097,10 @@ namespace PicoStationCovMaker
 
         private void cmbCoverBaseUrl_DropDown(object? sender, EventArgs e)
         {
-            // Refresh from disk when the user opens the dropdown.
-            // This makes external edits to PicoStationCovMaker.config.json visible immediately.
-            try
-            {
-                if (_coverUrlInternalUpdate)
-                    return;
-
-                LoadConfig();
-
-                string selected = (cmbCoverBaseUrl?.Text ?? "").Trim();
-                if (string.IsNullOrWhiteSpace(selected))
-                    selected = string.IsNullOrWhiteSpace(_config.CoverBaseUrl) ? DefaultCoverBaseUrl : _config.CoverBaseUrl!.Trim();
-
-                _config.CoverBaseUrls ??= new List<string>();
-                if (!_config.CoverBaseUrls.Any(u => string.Equals(u?.Trim(), selected, StringComparison.OrdinalIgnoreCase)))
-                    _config.CoverBaseUrls.Insert(0, selected);
-
-                RefreshCoverUrlDropdownFromConfig(selected);
-            }
-            catch
-            {
-                // ignore
-            }
+            // Do NOT refresh / repopulate the dropdown while it is open.
+            // Refreshing here causes selection jumps and caret issues when typing.
+            // External edits will be picked up the next time the app loads or when the user commits a value.
+            return;
         }
 
         private void RefreshCoverUrlDropdownFromConfig(string selected)
@@ -2708,5 +3157,896 @@ namespace PicoStationCovMaker
         {
 
         }
-    }
+
+        private void grpDownloadType_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void grpDownloadType_Enter_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lblOutputFolder_Click_1(object sender, EventArgs e)
+        {
+
+        }
+    
+        private void btnCalcPvd_Click(object sender, EventArgs e)
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Filter = "PlayStation BIN/CUE (*.bin;*.cue)|*.bin;*.cue|BIN (*.bin)|*.bin|CUE (*.cue)|*.cue|All files (*.*)|*.*",
+                Title = "Select a PS1 BIN/CUE to calculate PVD CRC32"
+            };
+
+            if (ofd.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            string gamePath = ofd.FileName;
+            string? crcHex = TryComputePvdCrc32Hex(gamePath, null);
+
+            if (string.IsNullOrWhiteSpace(crcHex))
+            {
+                MessageBox.Show(this,
+                    "Could not compute PVD CRC32.\r\n\r\nTip: make sure you selected the DATA track BIN (track 01) or a valid CUE.",
+                    "Calculate PVD CRC32",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            crcHex = crcHex.Trim().ToUpperInvariant();
+            Clipboard.SetText(crcHex);
+
+            MessageBox.Show(this,
+                $"PVD CRC32:\r\n{crcHex}\r\n\r\n(Copied to clipboard)",
+                "Calculate PVD CRC32",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+
+        private void btnOpenSd_Click(object sender, EventArgs e)
+        {
+            var path = _lastSdRoot;
+
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            {
+                MessageBox.Show(this,
+                    "No SD selected yet.\r\n\r\nUse \"Scan SD\" first to choose the SD root folder.",
+                    "Open SD",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = path,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Open SD", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+
+        // ---------------- PicoStation Menu Colors (preview) ----------------
+
+        private sealed class MenuTheme
+        {
+            public Color Background { get; set; } = Color.Black;
+            public Color Frame { get; set; } = Color.White;
+            public Color FileList { get; set; } = Color.FromArgb(0x10, 0x10, 0x10);
+            public Color Cursor { get; set; } = Color.FromArgb(0xFF, 0xB2, 0x00);
+            public Color Text { get; set; } = Color.White;
+        }
+
+        private sealed class MenuLayoutRect
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int W { get; set; }
+            public int H { get; set; }
+        }
+
+        private sealed class MenuLayout
+        {
+            public MenuLayoutRect Frame { get; set; } = new();
+            public MenuLayoutRect List { get; set; } = new();
+            public MenuLayoutRect Cursor { get; set; } = new();
+            public MenuLayoutRect CoverFront { get; set; } = new();
+            public MenuLayoutRect LogoBox { get; set; } = new();
+            public MenuLayoutRect ItemCounter { get; set; } = new();
+            public MenuLayoutRect FooterBar { get; set; } = new();
+            public MenuLayoutRect FooterIcon { get; set; } = new();
+            public MenuLayoutRect FooterText { get; set; } = new();
+            public MenuLayoutRect ListIcon1 { get; set; } = new();
+            public MenuLayoutRect ListIcon2 { get; set; } = new();
+            public MenuLayoutRect ListText1 { get; set; } = new();
+            public MenuLayoutRect ListText2 { get; set; } = new();
+        }
+
+        private readonly MenuTheme _menuTheme = new();
+        private readonly MenuLayout _menuLayout = new();
+        private Bitmap? _psFontAtlas;      // text atlas (font2.png)
+        private Bitmap? _psIconAtlas;      // icon atlas (font.png)
+        private Bitmap? _psLogo;
+        private Bitmap? _menuPreviewCover;
+        private Bitmap? _wallpaperBitmap;
+        private readonly Dictionary<char, Rectangle> _glyphMap = new();
+        private const int VirtualW = 640;
+        private const int VirtualH = 480;
+        private int _glyphW = 6;
+        private int _glyphH = 12;
+        private int _iconGlyphW = 6;
+        private int _iconGlyphH = 12;
+
+
+        // Icon source rects in the original icon atlas (font.png), row 6, icons span 2 cells wide.
+        private Rectangle IconCdSrc => new Rectangle(0 * _iconGlyphW, 6 * _iconGlyphH, _iconGlyphW * 2, _iconGlyphH);
+        private Rectangle IconCrossSrc => new Rectangle(4 * _iconGlyphW, 6 * _iconGlyphH, _iconGlyphW * 2, _iconGlyphH);
+        private Rectangle IconFolderSrc => new Rectangle(6 * _iconGlyphW, 6 * _iconGlyphH, _iconGlyphW * 2, _iconGlyphH);
+
+        private void InitMenuColorsUi()
+        {
+            try
+            {
+                // Populate targets
+                cmbMenuTarget.Items.Clear();
+                cmbMenuTarget.Items.AddRange(new object[] { "background", "frame", "filelist", "cursor", "text" });
+                cmbMenuTarget.SelectedIndex = 0;
+
+                trkR.Maximum = 255; trkG.Maximum = 255; trkB.Maximum = 255;
+                trkR.TickStyle = TickStyle.None;
+                trkG.TickStyle = TickStyle.None;
+                trkB.TickStyle = TickStyle.None;
+
+                cmbMenuTarget.SelectedIndexChanged += (_, __) => SyncSlidersFromTheme();
+                trkR.Scroll += (_, __) => ApplySlidersToTheme();
+                trkG.Scroll += (_, __) => ApplySlidersToTheme();
+                trkB.Scroll += (_, __) => ApplySlidersToTheme();
+
+                btnMenuPick.Click += (_, __) => PickColorForTarget();
+                btnMenuSave.Click += (_, __) => SaveMenuConfigIfPossible();
+                btnMenuReload.Click += (_, __) => { LoadMenuConfigIfPossible(); LoadMenuLayout(); pnlMenuPreview.Invalidate(); };
+                btnWallpaper.Enabled = false;
+                btnWallpaper.Click += BtnWallpaper_Click;
+
+                pnlMenuPreview.Paint += PnlMenuPreview_Paint;
+                pnlMenuPreview.Resize += (_, __) => pnlMenuPreview.Invalidate();
+
+                LoadMenuAssets();
+                LoadMenuLayout();
+                SyncSlidersFromTheme();
+            }
+            catch (Exception ex)
+            {
+                Log("Menu Colors init failed: " + ex.Message);
+            }
+        }
+
+        private void LoadMenuAssets()
+        {
+            // Try to load bitmap font(s) + logo from embedded resources first, then fall back to app folder
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string fontIconPath = Path.Combine(baseDir, "font.png");   // original icon atlas
+            string fontTextPath = Path.Combine(baseDir, "font2.png");  // text-only atlas from GitHub
+            string logoPath = Path.Combine(baseDir, "picostationlogo.png");
+
+            // Text font atlas (font2.png)
+            _psFontAtlas?.Dispose();
+            _psFontAtlas = LoadEmbeddedBitmap("font2.png");
+            if (_psFontAtlas == null && File.Exists(fontTextPath))
+            {
+                _psFontAtlas = new Bitmap(fontTextPath);
+            }
+            if (_psFontAtlas != null)
+            {
+                BuildGlyphMapFromAtlas(_psFontAtlas);
+            }
+
+            // Icon font atlas (original font.png with CD/X/folder icons)
+            _psIconAtlas?.Dispose();
+            _psIconAtlas = LoadEmbeddedBitmap("font.png");
+            if (_psIconAtlas == null && File.Exists(fontIconPath))
+            {
+                _psIconAtlas = new Bitmap(fontIconPath);
+            }
+            if (_psIconAtlas != null)
+            {
+                // Derive icon cell size (icons use 16x7 grid in original atlas).
+                _iconGlyphW = _psIconAtlas.Width / 16;
+                _iconGlyphH = _psIconAtlas.Height / 7;
+            }
+
+            // Logo
+            _psLogo?.Dispose();
+            _psLogo = LoadEmbeddedBitmap("picostationlogo.png");
+            if (_psLogo == null && File.Exists(logoPath))
+            {
+                _psLogo = new Bitmap(logoPath);
+            }
+
+            // Menu preview cover (SCUS-94508.png)
+            _menuPreviewCover?.Dispose();
+            _menuPreviewCover = LoadEmbeddedBitmap("SCUS-94508.png");
+            if (_menuPreviewCover == null)
+            {
+                string coverPath = Path.Combine(baseDir, "SCUS-94508.png");
+                if (File.Exists(coverPath))
+                {
+                    _menuPreviewCover = new Bitmap(coverPath);
+                }
+            }
+        }
+
+
+        private Bitmap? LoadEmbeddedBitmap(string endsWith)
+        {
+            var asm = typeof(MainForm).Assembly;
+            string? name = asm
+                .GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith(endsWith, StringComparison.OrdinalIgnoreCase));
+            if (name == null)
+                return null;
+
+            using (var s = asm.GetManifestResourceStream(name))
+            {
+                if (s == null)
+                    return null;
+                return new Bitmap(s);
+            }
+        }
+
+
+        private void BuildGlyphMapFromAtlas(Bitmap atlas)
+        {
+            _glyphMap.Clear();
+
+            // Text atlas (font2.png) is 96x56:
+            //  - 16 columns
+            //  - 6 glyph rows of 8 pixels high
+            //  - 1-pixel black separator row between each glyph row.
+            const int cols = 16;
+
+            _glyphW = atlas.Width / cols;
+            _glyphH = 8; // actual glyph height in pixels
+
+            // Atlas is ordered like ASCII from ' ' (0x20) to '~' (0x7E),
+            // laid out left-to-right, top-to-bottom in a 16x6 grid,
+            // with one separator scanline between each glyph row.
+            for (int code = 0x20; code <= 0x7E; code++)
+            {
+                int idx = code - 0x20;
+                int row = idx / cols;   // 0..5
+                int col = idx % cols;   // 0..15
+
+                // Each glyph row starts at row * (_glyphH + 1) to skip the separator line.
+                int y = row * (_glyphH + 1);
+                _glyphMap[(char)code] = new Rectangle(col * _glyphW, y, _glyphW, _glyphH);
+            }
+
+
+            // Icons live in the separate icon atlas (font.png) and are drawn via DrawPsIcon().
+        }
+
+        private void MapRow(string chars, int row, int cols)
+        {
+            for (int i = 0; i < chars.Length && i < cols; i++)
+            {
+                char c = chars[i];
+                _glyphMap[c] = new Rectangle(i * _glyphW, row * _glyphH, _glyphW, _glyphH);
+            }
+        }
+        private void LoadMenuLayout()
+        {
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+				string toolsDir = Path.Combine(baseDir, "Tools");
+				Directory.CreateDirectory(toolsDir); // maakt Tools aan als hij nog niet bestaat
+
+				string layoutPath = Path.Combine(toolsDir, "menu_layout.json");
+
+                if (File.Exists(layoutPath))
+                {
+                    string json = File.ReadAllText(layoutPath);
+                    var layout = JsonSerializer.Deserialize<MenuLayout>(json);
+                    if (layout != null)
+                    {
+                        _menuLayout.Frame       = layout.Frame       ?? _menuLayout.Frame;
+                        _menuLayout.List        = layout.List        ?? _menuLayout.List;
+                        _menuLayout.Cursor      = layout.Cursor      ?? _menuLayout.Cursor;
+                        _menuLayout.CoverFront  = layout.CoverFront  ?? _menuLayout.CoverFront;
+                        _menuLayout.LogoBox     = layout.LogoBox     ?? _menuLayout.LogoBox;
+                        _menuLayout.ItemCounter = layout.ItemCounter ?? _menuLayout.ItemCounter;
+                        _menuLayout.FooterBar   = layout.FooterBar   ?? _menuLayout.FooterBar;
+                        _menuLayout.FooterIcon  = layout.FooterIcon  ?? _menuLayout.FooterIcon;
+                        _menuLayout.FooterText  = layout.FooterText  ?? _menuLayout.FooterText;
+                        _menuLayout.ListIcon1   = layout.ListIcon1   ?? _menuLayout.ListIcon1;
+                        _menuLayout.ListIcon2   = layout.ListIcon2   ?? _menuLayout.ListIcon2;
+                        _menuLayout.ListText1   = layout.ListText1   ?? _menuLayout.ListText1;
+                        _menuLayout.ListText2   = layout.ListText2   ?? _menuLayout.ListText2;
+                        return;
+                    }
+                }
+
+                // If anything fails (or first run), write a fresh default layout
+                _menuLayout.Frame       = new MenuLayoutRect { X = 1,   Y = 1,   W = 638, H = 478 };
+                _menuLayout.List        = new MenuLayoutRect { X = 12,  Y = 12,  W = 351, H = 438 };
+                _menuLayout.Cursor      = new MenuLayoutRect { X = 13,  Y = 49,  W = 170, H = 18 };
+                _menuLayout.CoverFront  = new MenuLayoutRect { X = 368, Y = 158, W = 262, H = 282 };
+                _menuLayout.LogoBox     = new MenuLayoutRect { X = 366, Y = 6,   W = 267, H = 56 };
+                _menuLayout.ItemCounter = new MenuLayoutRect { X = 376, Y = 140, W = 104, H = 24 };
+                _menuLayout.FooterBar   = new MenuLayoutRect { X = 1,   Y = 453, W = 638, H = 26 };
+                _menuLayout.FooterIcon  = new MenuLayoutRect { X = 18,  Y = 453, W = 20,  H = 20 };
+                _menuLayout.FooterText  = new MenuLayoutRect { X = 43,  Y = 456, W = 0,   H = 0  };
+                _menuLayout.ListIcon1   = new MenuLayoutRect { X = 16,  Y = 26,  W = 24,  H = 24 };
+                _menuLayout.ListIcon2   = new MenuLayoutRect { X = 16,  Y = 47,  W = 24,  H = 24 };
+                _menuLayout.ListText1   = new MenuLayoutRect { X = 39,  Y = 31,  W = 0,   H = 0  };
+                _menuLayout.ListText2   = new MenuLayoutRect { X = 39,  Y = 51,  W = 0,   H = 0  };
+
+                string jsonOut = JsonSerializer.Serialize(_menuLayout, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(layoutPath, jsonOut);
+            }
+            catch (Exception ex)
+            {
+                Log("Menu layout load failed: " + ex.Message);
+            }
+        }
+
+        private static Rectangle ToRect(MenuLayoutRect r) => new Rectangle(r.X, r.Y, r.W, r.H);
+
+
+        private Color GetTargetColor()
+        {
+            string key = (cmbMenuTarget.SelectedItem as string) ?? "background";
+            return key switch
+            {
+                "background" => _menuTheme.Background,
+                "frame" => _menuTheme.Frame,
+                "filelist" => _menuTheme.FileList,
+                "cursor" => _menuTheme.Cursor,
+                "text" => _menuTheme.Text,
+                _ => _menuTheme.Background
+            };
+        }
+
+        private void SetTargetColor(Color c)
+        {
+            string key = (cmbMenuTarget.SelectedItem as string) ?? "background";
+            switch (key)
+            {
+                case "background": _menuTheme.Background = c; break;
+                case "frame": _menuTheme.Frame = c; break;
+                case "filelist": _menuTheme.FileList = c; break;
+                case "cursor": _menuTheme.Cursor = c; break;
+                case "text": _menuTheme.Text = c; break;
+            }
+        }
+
+        private void SyncSlidersFromTheme()
+        {
+            Color c = GetTargetColor();
+            trkR.Value = c.R;
+            trkG.Value = c.G;
+            trkB.Value = c.B;
+            lblMenuHex.Text = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+            pnlMenuPreview.Invalidate();
+        }
+
+        private void ApplySlidersToTheme()
+        {
+            Color c = Color.FromArgb(trkR.Value, trkG.Value, trkB.Value);
+            SetTargetColor(c);
+            lblMenuHex.Text = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+            pnlMenuPreview.Invalidate();
+        }
+
+        private void PickColorForTarget()
+        {
+            using var cd = new ColorDialog
+            {
+                FullOpen = true,
+                Color = GetTargetColor()
+            };
+
+            if (cd.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            SetTargetColor(cd.Color);
+            SyncSlidersFromTheme();
+            btnWallpaper.Enabled = true;
+        }
+
+        private void LoadMenuConfigIfPossible(bool showErrors = true)
+        {
+            if (string.IsNullOrWhiteSpace(_lastSdRoot) || !Directory.Exists(_lastSdRoot))
+            {
+                if (showErrors)
+                {
+                    MessageBox.Show(this, "Select an SD root first (...", "Menu Colors", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                return;
+            }
+
+
+            string iniPath = Path.Combine(_lastSdRoot, "config.ini");
+            if (!File.Exists(iniPath))
+            {
+                if (showErrors)
+                {
+                    MessageBox.Show(this, $"config.ini not found in ...", "Menu Colors", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                return;
+            }
+
+
+            bool wallpaperOn = false;
+
+            foreach (var line in File.ReadAllLines(iniPath))
+            {
+                var s = line.Trim();
+                if (s.Length == 0 || s.StartsWith("#") || !s.Contains('=')) continue;
+                var parts = s.Split('=', 2);
+                var key = parts[0].Trim().ToLowerInvariant();
+                var val = parts[1].Trim();
+                if (val.StartsWith("#")) val = val.Substring(1);
+
+                if (key == "wallpaper")
+                {
+                    wallpaperOn = val == "1" || val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    continue;
+                }
+
+                if (val.Length != 6) continue;
+
+                if (int.TryParse(val, System.Globalization.NumberStyles.HexNumber, null, out int rgb))
+                {
+                    var c = Color.FromArgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+                    switch (key)
+                    {
+                        case "background": _menuTheme.Background = c; break;
+                        case "frame": _menuTheme.Frame = c; break;
+                        case "filelist": _menuTheme.FileList = c; break;
+                        case "cursor": _menuTheme.Cursor = c; break;
+                        case "text": _menuTheme.Text = c; break;
+                    }
+                }
+            }
+
+            SyncSlidersFromTheme();
+            btnWallpaper.Enabled = true;
+
+            // (Re)load wallpaper preview if enabled and background.raw exists
+            _wallpaperBitmap?.Dispose();
+            _wallpaperBitmap = null;
+            if (wallpaperOn && !string.IsNullOrWhiteSpace(_lastSdRoot))
+            {
+                try
+                {
+                    string bgPath = Path.Combine(_lastSdRoot, "background.raw");
+                    if (File.Exists(bgPath))
+                    {
+                        _wallpaperBitmap = PicoWallpaperEncoder.LoadRawWallpaper(bgPath);
+                    }
+                }
+                catch
+                {
+                    _wallpaperBitmap = null;
+                }
+            }
+        }
+
+        
+        private void SaveMenuConfigIfPossible()
+        {
+            if (string.IsNullOrWhiteSpace(_lastSdRoot) || !Directory.Exists(_lastSdRoot))
+            {
+                MessageBox.Show(this,
+                    "Select an SD root first (use \"Scan SD\").",
+                    "Menu Colors",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            string iniPath = Path.Combine(_lastSdRoot, "config.ini");
+
+            var lines = File.Exists(iniPath)
+                ? new System.Collections.Generic.List<string>(File.ReadAllLines(iniPath))
+                : new System.Collections.Generic.List<string>();
+
+            void Upsert(string key, Color c)
+            {
+                string v = $"{c.R:X2}{c.G:X2}{c.B:X2}";
+                int idx = lines.FindIndex(l => l.TrimStart().StartsWith(key + "=", StringComparison.OrdinalIgnoreCase));
+                if (idx >= 0)
+                    lines[idx] = $"{key}={v}";
+                else
+                    lines.Add($"{key}={v}");
+            }
+
+            Upsert("background", _menuTheme.Background);
+            Upsert("frame", _menuTheme.Frame);
+            Upsert("filelist", _menuTheme.FileList);
+            Upsert("cursor", _menuTheme.Cursor);
+            Upsert("text", _menuTheme.Text);
+
+            File.WriteAllLines(iniPath, lines);
+            MessageBox.Show(this,
+                "Saved config.ini to SD root.",
+                "Menu Colors",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        private void BtnWallpaper_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_lastSdRoot) || !Directory.Exists(_lastSdRoot))
+            {
+                MessageBox.Show(this,
+                    "Select an SD root first (use \"Scan SD\").",
+                    "Wallpaper",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var ofd = new OpenFileDialog
+            {
+                Filter = "PNG images (*.png)|*.png",
+                Title = "Select wallpaper PNG"
+            })
+            {
+                if (ofd.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                try
+                {
+                    PicoWallpaperService.CreateWallpaperFromPng(ofd.FileName, _lastSdRoot!);
+                    // Immediately reload menu config/layout so the new wallpaper is visible
+                    LoadMenuConfigIfPossible();
+                    LoadMenuLayout();
+                    pnlMenuPreview.Invalidate();
+
+                    MessageBox.Show(this,
+                        "Wallpaper saved as background.raw on the SD card and wallpaper=1 set in config.ini.",
+                        "Wallpaper",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this,
+                        "Failed to create wallpaper: " + ex.Message,
+                        "Wallpaper error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            }
+        }
+
+private void PnlMenuPreview_Paint(object? sender, PaintEventArgs e)
+        {
+            e.Graphics.Clear(Color.Black);
+            e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+            e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+
+            var client = pnlMenuPreview.ClientRectangle;
+            if (client.Width <= 0 || client.Height <= 0) return;
+
+            // No scaling: always render at virtual 640x480 and center it
+            float scale = 1f;
+            int drawW = VirtualW;
+            int drawH = VirtualH;
+            int ox = (client.Width - drawW) / 2;
+            int oy = (client.Height - drawH) / 2;
+
+            // Draw wallpaper background if present (scaled from 320x240 to virtual 640x480)
+            if (_wallpaperBitmap != null)
+            {
+                var dest = new Rectangle(ox, oy, drawW, drawH);
+                var src = new Rectangle(0, 0, _wallpaperBitmap.Width, _wallpaperBitmap.Height);
+                e.Graphics.DrawImage(_wallpaperBitmap, dest, src, GraphicsUnit.Pixel);
+            }
+
+            // Helper to scale virtual rects
+            Rectangle SR(int x, int y, int w, int h) =>
+                new Rectangle(ox + (int)(x * scale), oy + (int)(y * scale), (int)(w * scale), (int)(h * scale));
+
+            // Resolve layout rects from JSON layout
+            Rectangle frame       = ToRect(_menuLayout.Frame);
+            Rectangle list        = ToRect(_menuLayout.List);
+            Rectangle cursor      = ToRect(_menuLayout.Cursor);
+            Rectangle front       = ToRect(_menuLayout.CoverFront);
+            Rectangle logoBox     = ToRect(_menuLayout.LogoBox);
+            Rectangle itemCounter = ToRect(_menuLayout.ItemCounter);
+
+            // Fill only inside the FRAME with background; keep outside black
+            if (_wallpaperBitmap == null)
+            {
+                using (var b = new SolidBrush(_menuTheme.Background))
+                    e.Graphics.FillRectangle(b, SR(frame.X, frame.Y, frame.Width, frame.Height));
+            }
+
+
+         // Frame and footer separator
+		 using (var pen = new Pen(_menuTheme.Frame, 2f)) // 2f = 2 pixels dik
+{
+		e.Graphics.DrawRectangle(pen, SR(frame.X, frame.Y, frame.Width, frame.Height));
+		// eventueel je footer-lijntje hier ook tekenen met dezelfde pen
+}
+
+        const float FrameThickness = 2f; // bovenaan in de methode of klasse
+
+		// File list
+		using (var b = new SolidBrush(_menuTheme.FileList))
+		e.Graphics.FillRectangle(b, SR(list.X, list.Y, list.Width, list.Height));
+
+		// File list border
+		using (var pen = new Pen(_menuTheme.Frame, FrameThickness))
+{
+		e.Graphics.DrawRectangle(pen, SR(list.X, list.Y, list.Width, list.Height));
+}
+
+            // Cursor
+            using (var b = new SolidBrush(_menuTheme.Cursor))
+                e.Graphics.FillRectangle(b, SR(cursor.X, cursor.Y, cursor.Width, cursor.Height));
+
+            // List entry layout (icons + text) from JSON
+            Rectangle icon1 = ToRect(_menuLayout.ListIcon1);
+            Rectangle icon2 = ToRect(_menuLayout.ListIcon2);
+            Rectangle text1 = ToRect(_menuLayout.ListText1);
+            Rectangle text2 = ToRect(_menuLayout.ListText2);
+
+            string[] items =
+            {
+                "007 Racing (USA)",
+                "2Xtreme (USA)"
+            };
+
+            for (int i = 0; i < items.Length && i < 2; i++)
+            {
+                string s = items[i];
+
+                Rectangle iconRect = (i == 0) ? icon1 : icon2;
+                Rectangle textRect = (i == 0) ? text1 : text2;
+
+                // CD icon (list icons)
+                DrawPsIconIntoRect(e.Graphics, IconCdSrc, iconRect, scale, ox, oy);
+
+                // Text
+                DrawPsString(e.Graphics, s, textRect.X, textRect.Y, _menuTheme.Text, scale, ox, oy);
+            }
+
+            // Right side info: "2 of 2" position from JSON
+            DrawPsString(e.Graphics, "2 of 2    SCUS-94508", itemCounter.X, itemCounter.Y, _menuTheme.Text, scale, ox, oy);
+
+            // Logo: fit inside LogoBox rect
+            if (_psLogo != null)
+            {
+                Rectangle vb = logoBox;
+                Rectangle dest = SR(vb.X, vb.Y, vb.Width, vb.Height);
+
+                int lw = _psLogo.Width;
+                int lh = _psLogo.Height;
+                float sx = (float)dest.Width / lw;
+                float sy = (float)dest.Height / lh;
+                float s = Math.Min(sx, sy);
+                int drawLogoW = (int)(lw * s);
+                int drawLogoH = (int)(lh * s);
+                int dx = dest.Left + (dest.Width - drawLogoW) / 2;
+                int dy = dest.Top + (dest.Height - drawLogoH) / 2;
+
+                e.Graphics.DrawImage(_psLogo, new Rectangle(dx, dy, drawLogoW, drawLogoH));
+            }
+
+            if (_menuPreviewCover != null)
+            {
+                int coverW = _menuPreviewCover.Width;
+                int coverH = _menuPreviewCover.Height;
+
+                // Scale cover to fit nicely inside the front rectangle
+                float scaleCover = Math.Min(
+                    (float)front.Width  / coverW,
+                    (float)front.Height / coverH
+                ) * 1.00f; // small margin
+
+                int scaledW = (int)(coverW * scaleCover);
+                int scaledH = (int)(coverH * scaleCover);
+
+                int destX = front.X + (front.Width  - scaledW) / 2;
+                int destY = front.Y + (front.Height - scaledH) / 2;
+
+                Rectangle dest = new Rectangle(destX, destY, scaledW, scaledH);
+                Rectangle destScaled = SR(dest.X, dest.Y, dest.Width, dest.Height);
+                var src = new Rectangle(0, 0, coverW, coverH);
+
+                e.Graphics.DrawImage(_menuPreviewCover, destScaled, src, GraphicsUnit.Pixel);
+            }
+            else
+            {
+                DrawPsString(e.Graphics, "NO COVER", front.X + 40, front.Y + front.Height / 2 - 8, _menuTheme.Text, scale, ox, oy);
+            }
+
+            // Footer:  X Open  (positions from JSON)
+            Rectangle footerIcon = ToRect(_menuLayout.FooterIcon);
+            Rectangle footerText = ToRect(_menuLayout.FooterText);
+
+            DrawPsIconIntoRect(e.Graphics, IconCrossSrc, footerIcon, scale, ox, oy);
+            DrawPsString(e.Graphics, "Open", footerText.X, footerText.Y, _menuTheme.Text, scale, ox, oy);
+        }
+private void DrawPsIcon(Graphics g, Rectangle src, int vx, int vy, float scale, int ox, int oy)
+        {
+            // Icons come from the separate icon atlas (font.png).
+            if (_psIconAtlas == null)
+                return;
+
+            using var icon = _psIconAtlas.Clone(src, PixelFormat.Format32bppArgb);
+            RecolorGlyphInPlace(icon, _menuTheme.Text);
+
+            var dest = new Rectangle(
+                ox + (int)(vx * scale),
+                oy + (int)(vy * scale),
+                (int)(src.Width * scale),
+                (int)(src.Height * scale));
+
+            g.DrawImage(icon, dest);
+        }
+
+
+        private void DrawPsIconIntoRect(Graphics g, Rectangle src, Rectangle destVirtual, float scale, int ox, int oy)
+        {
+            // Icons come from the separate icon atlas (font.png).
+            if (_psIconAtlas == null)
+                return;
+
+            using var icon = _psIconAtlas.Clone(src, PixelFormat.Format32bppArgb);
+
+            var dest = new Rectangle(
+                ox + (int)(destVirtual.X * scale),
+                oy + (int)(destVirtual.Y * scale),
+                (int)(destVirtual.Width * scale),
+                (int)(destVirtual.Height * scale));
+
+            g.DrawImage(icon, dest);
+        }
+
+
+private void DrawPsString(Graphics g, string text, int vx, int vy, Color color, float scale, int ox, int oy)
+        {
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            // Prefer the bitmap font atlas (font2.png) for an authentic PicoStation look.
+            // Fall back to a system font if the atlas or glyph map isn't available.
+            if (_psFontAtlas == null || _glyphMap.Count == 0)
+            {
+                // Fallback: system font, met een simpele schaalfactor op de fontgrootte.
+                const float fallbackTextScale = 1.0f; // Pas deze aan als je fallback-tekst groter/kleiner wilt.
+                using var br = new SolidBrush(color);
+                float fontSize = 10.0f * fallbackTextScale * scale;
+                using var f = new Font(Font.FontFamily, fontSize, FontStyle.Regular, GraphicsUnit.Pixel);
+                float fx = ox + vx * scale;
+                float fy = oy + vy * scale;
+                g.DrawString(text, f, br, fx, fy);
+                return;
+            }
+
+            // layoutScale bepaalt de positie (virtual 640x480 -> scherm),
+            // textScale bepaalt alleen de grootte van de glyphs.
+            float layoutScale = scale;
+            const float textScale = 1.9f; // <<< Alleen hieraan draaien om de tekst groter/kleiner te maken.
+
+            // Beginpunt voor de tekst in scherm-coordinaten
+            float px = ox + vx * layoutScale;
+            float py = oy + vy * layoutScale;
+
+            // Voor de bitmap-tekst gebruiken we een ColorMatrix om de atlas-kleur (wit)
+            // te 'tinten' naar de gevraagde kleur.
+            float rF = color.R / 255f;
+            float gF = color.G / 255f;
+            float bF = color.B / 255f;
+
+            var cm = new System.Drawing.Imaging.ColorMatrix(new float[][]
+            {
+                new float[] { rF, 0f, 0f, 0f, 0f },
+                new float[] { 0f, gF, 0f, 0f, 0f },
+                new float[] { 0f, 0f, bF, 0f, 0f },
+                new float[] { 0f, 0f, 0f, 1f, 0f },
+                new float[] { 0f, 0f, 0f, 0f, 1f }
+            });
+
+            using var ia = new System.Drawing.Imaging.ImageAttributes();
+            ia.SetColorMatrix(cm);
+
+            // Draw each character using the glyph rectangles from the text atlas.
+            foreach (char ch in text)
+            {
+                if (ch == ' ')
+                {
+                    // Space: gewoon één glyph-breedte opschuiven (met textScale).
+                    px += _glyphW * layoutScale * textScale;
+                    continue;
+                }
+
+                if (!_glyphMap.TryGetValue(ch, out var src))
+                {
+                    // Onbekend karakter: behandel als spatie.
+                    px += _glyphW * layoutScale * textScale;
+                    continue;
+                }
+
+                int destW = Math.Max(1, (int)Math.Round(_glyphW * layoutScale * textScale));
+                int destH = Math.Max(1, (int)Math.Round(_glyphH * layoutScale * textScale));
+                int destX = (int)Math.Round(px);
+                int destY = (int)Math.Round(py);
+
+                var destRect = new Rectangle(destX, destY, destW, destH);
+
+                // Teken direct uit de atlas met een kleurmatrix zodat de tekst meekleurt met 'color'.
+                g.DrawImage(
+                    _psFontAtlas,
+                    destRect,
+                    src.X,
+                    src.Y,
+                    src.Width,
+                    src.Height,
+                    GraphicsUnit.Pixel,
+                    ia);
+
+                // Kerning tweak: smalle glyphs krijgen net iets minder advance,
+                // zodat er geen "gaten" vallen zoals in "Racing (USA)".
+                float advance = _glyphW * layoutScale * textScale;
+                switch (ch)
+                {
+                    case 'I':
+                    case 'i':
+                    case 'l':
+                    case '1':
+                    case '(':
+                    case ')':
+                        advance -= 1.0f; // 1 schermpixel minder
+                        break;
+                }
+
+                if (advance < 1.0f)
+                    advance = 1.0f;
+
+                px += advance;
+            }
+        }
+
+
+private static void RecolorGlyphInPlace(Bitmap bmp, Color color)
+        {
+            // PicoStation atlas uses white glyph pixels on transparent background.
+            // Only recolor non-transparent, non-black pixels.
+            for (int y = 0; y < bmp.Height; y++)
+            for (int x = 0; x < bmp.Width; x++)
+            {
+                var p = bmp.GetPixel(x, y);
+                if (p.A == 0) continue;
+
+                // Treat anything that isn't "near black" as part of the glyph
+                if (p.R < 16 && p.G < 16 && p.B < 16) continue;
+
+                bmp.SetPixel(x, y, Color.FromArgb(p.A, color.R, color.G, color.B));
+            }
+        }
+}
 }

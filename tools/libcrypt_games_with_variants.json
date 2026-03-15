@@ -1,0 +1,1408 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "lsd_library_relative": "Tools/LSD",
+    "target_lsd_naming": "cue_basename",
+    "copy_mode": "copy_file"
+  },
+  "games": {
+    "SCED-01979": {
+      "title": "Formula One 99",
+      "lsd": {
+        "default": "SCED-01979.lsd"
+      }
+    },
+    "SCES-00311": {
+      "title": "MediEvil",
+      "lsd": {
+        "default": "SCES-00311.lsd"
+      }
+    },
+    "SCES-01431": {
+      "title": "Disney's Tarzan",
+      "lsd": {
+        "default": "SCES-01431.lsd"
+      }
+    },
+    "SCES-01444": {
+      "title": "Jackie Chan Stuntmaster",
+      "lsd": {
+        "default": "SCES-01444.lsd"
+      }
+    },
+    "SCES-01492": {
+      "title": "MediEvil",
+      "lsd": {
+        "default": "SCES-01492.lsd"
+      }
+    },
+    "SCES-01493": {
+      "title": "MediEvil",
+      "lsd": {
+        "default": "SCES-01493.lsd"
+      }
+    },
+    "SCES-01494": {
+      "title": "MediEvil",
+      "lsd": {
+        "default": "SCES-01494.lsd"
+      }
+    },
+    "SCES-01495": {
+      "title": "MediEvil",
+      "lsd": {
+        "default": "SCES-01495.lsd"
+      }
+    },
+    "SCES-01516": {
+      "title": "Disney Tarzan",
+      "lsd": {
+        "default": "SCES-01516.lsd"
+      }
+    },
+    "SCES-01517": {
+      "title": "Disneys Tarzan",
+      "lsd": {
+        "default": "SCES-01517.lsd"
+      }
+    },
+    "SCES-01518": {
+      "title": "Disney Tarzan",
+      "lsd": {
+        "default": "SCES-01518.lsd"
+      }
+    },
+    "SCES-01519": {
+      "title": "Disney Tarzan",
+      "lsd": {
+        "default": "SCES-01519.lsd"
+      }
+    },
+    "SCES-01564": {
+      "title": "Ape Escape",
+      "lsd": {
+        "default": "SCES-01564.lsd"
+      }
+    },
+    "SCES-01695": {
+      "title": "Disney's Mulan: Story Studio",
+      "lsd": {
+        "default": "SCES-01695.lsd"
+      }
+    },
+    "SCES-01700": {
+      "title": "This Is Football",
+      "lsd": {
+        "default": "SCES-01700.lsd"
+      }
+    },
+    "SCES-01701": {
+      "title": "Le Monde des Bleus: Le Jeu Officiel de l'Équipe de France",
+      "lsd": {
+        "default": "SCES-01701.lsd"
+      }
+    },
+    "SCES-01702": {
+      "title": "Fussball Live",
+      "lsd": {
+        "default": "SCES-01702.lsd"
+      }
+    },
+    "SCES-01703": {
+      "title": "This Is Football",
+      "lsd": {
+        "default": "SCES-01703.lsd"
+      }
+    },
+    "SCES-01704": {
+      "title": "Esto Es Futbol",
+      "lsd": {
+        "default": "SCES-01704.lsd"
+      }
+    },
+    "SCES-01763": {
+      "title": "Speed Freaks",
+      "lsd": {
+        "default": "SCES-01763.lsd"
+      }
+    },
+    "SCES-01882": {
+      "title": "This Is Football",
+      "lsd": {
+        "default": "SCES-01882.lsd"
+      }
+    },
+    "SCES-01909": {
+      "title": "Wip3out",
+      "lsd": {
+        "default": "SCES-01909.lsd"
+      }
+    },
+    "SCES-01979": {
+      "title": "Formula One 99",
+      "lsd": {
+        "default": "SCES-01979.lsd"
+      }
+    },
+    "SCES-02004": {
+      "title": "Disney Fais Ton Histoire! Mulan",
+      "lsd": {
+        "default": "SCES-02004.lsd"
+      }
+    },
+    "SCES-02005": {
+      "title": "Disneys Interaktive Abenteuer: Mulan",
+      "lsd": {
+        "default": "SCES-02005.lsd"
+      }
+    },
+    "SCES-02006": {
+      "title": "Disney Libro Animato Creativo: Mulan",
+      "lsd": {
+        "default": "SCES-02006.lsd"
+      }
+    },
+    "SCES-02007": {
+      "title": "Disney's Aventura Interactiva: Mulan",
+      "lsd": {
+        "default": "SCES-02007.lsd"
+      }
+    },
+    "SCES-02028": {
+      "title": "Ape Escape",
+      "lsd": {
+        "default": "SCES-02028.lsd"
+      }
+    },
+    "SCES-02029": {
+      "title": "Ape Escape",
+      "lsd": {
+        "default": "SCES-02029.lsd"
+      }
+    },
+    "SCES-02030": {
+      "title": "Ape Escape",
+      "lsd": {
+        "default": "SCES-02030.lsd"
+      }
+    },
+    "SCES-02031": {
+      "title": "Ape Escape: La Invasión de los Monos",
+      "lsd": {
+        "default": "SCES-02031.lsd"
+      }
+    },
+    "SCES-02080": {
+      "title": "Final Fantasy VIII (Disc 1)",
+      "lsd": {
+        "default": "SCES-02080.lsd"
+      }
+    },
+    "SCES-02104": {
+      "title": "Spyro 2: Gateway to Glimmer",
+      "lsd": {
+        "default": "SCES-02104.lsd"
+      }
+    },
+    "SCES-02105": {
+      "title": "CTR: Crash Team Racing",
+      "lsd": {
+        "default": "SCES-02105.lsd",
+        "variants": {
+          "B8EDB92F": "SCES-02105P.lsd"
+        }
+      }
+    },
+    "SCES-02181": {
+      "title": "Disneys Tarzan",
+      "lsd": {
+        "default": "SCES-02181.lsd"
+      }
+    },
+    "SCES-02182": {
+      "title": "Disneys Tarzan",
+      "lsd": {
+        "default": "SCES-02182.lsd"
+      }
+    },
+    "SCES-02184": {
+      "title": "Disneyn Tarzan",
+      "lsd": {
+        "default": "SCES-02184.lsd"
+      }
+    },
+    "SCES-02185": {
+      "title": "Disney's Tarzan",
+      "lsd": {
+        "default": "SCES-02185.lsd"
+      }
+    },
+    "SCES-02222": {
+      "title": "Formula One 99",
+      "lsd": {
+        "default": "SCES-02222.lsd"
+      }
+    },
+    "SCES-02264": {
+      "title": "Disney's Verhalenstudio: Mulan",
+      "lsd": {
+        "default": "SCES-02264.lsd"
+      }
+    },
+    "SCES-02269": {
+      "title": "This Is Soccer",
+      "lsd": {
+        "default": "SCES-02269.lsd"
+      }
+    },
+    "SCES-02290": {
+      "title": "Space Debris",
+      "lsd": {
+        "default": "SCES-02290.lsd"
+      }
+    },
+    "SCES-02365": {
+      "title": "Barbie: Race & Ride",
+      "lsd": {
+        "default": "SCES-02365.lsd"
+      }
+    },
+    "SCES-02366": {
+      "title": "Barbie: Aventure Equestre",
+      "lsd": {
+        "default": "SCES-02366.lsd"
+      }
+    },
+    "SCES-02367": {
+      "title": "Barbie: Race & Ride",
+      "lsd": {
+        "default": "SCES-02367.lsd"
+      }
+    },
+    "SCES-02368": {
+      "title": "Barbie: Race & Ride",
+      "lsd": {
+        "default": "SCES-02368.lsd"
+      }
+    },
+    "SCES-02369": {
+      "title": "Barbie: Race & Ride",
+      "lsd": {
+        "default": "SCES-02369.lsd"
+      }
+    },
+    "SCES-02430": {
+      "title": "Space Debris",
+      "lsd": {
+        "default": "SCES-02430.lsd"
+      }
+    },
+    "SCES-02431": {
+      "title": "Space Debris",
+      "lsd": {
+        "default": "SCES-02431.lsd",
+        "variants": {
+          "DA3140E8": "SCES-02431P.lsd"
+        }
+      }
+    },
+    "SCES-02432": {
+      "title": "Space Debris",
+      "lsd": {
+        "default": "SCES-02432.lsd"
+      }
+    },
+    "SCES-02433": {
+      "title": "Space Debris",
+      "lsd": {
+        "default": "SCES-02433.lsd"
+      }
+    },
+    "SCES-02487": {
+      "title": "Barbie: Super Sports",
+      "lsd": {
+        "default": "SCES-02487.lsd"
+      }
+    },
+    "SCES-02488": {
+      "title": "Barbie: Sports Extrême",
+      "lsd": {
+        "default": "SCES-02488.lsd"
+      }
+    },
+    "SCES-02489": {
+      "title": "Barbie: Super Sport",
+      "lsd": {
+        "default": "SCES-02489.lsd"
+      }
+    },
+    "SCES-02490": {
+      "title": "Barbie: Super Sports",
+      "lsd": {
+        "default": "SCES-02490.lsd"
+      }
+    },
+    "SCES-02491": {
+      "title": "Barbie: Super Sports",
+      "lsd": {
+        "default": "SCES-02491.lsd"
+      }
+    },
+    "SCES-02544": {
+      "title": "MediEvil 2",
+      "lsd": {
+        "default": "SCES-02544.lsd"
+      }
+    },
+    "SCES-02545": {
+      "title": "MediEvil 2",
+      "lsd": {
+        "default": "SCES-02545.lsd"
+      }
+    },
+    "SCES-02546": {
+      "title": "MediEvil 2",
+      "lsd": {
+        "default": "SCES-02546.lsd"
+      }
+    },
+    "SCES-02834": {
+      "title": "Crash Bash",
+      "lsd": {
+        "default": "SCES-02834.lsd"
+      }
+    },
+    "SCES-02835": {
+      "title": "Spyro: Year of the Dragon",
+      "lsd": {
+        "default": "SCES-02835.lsd",
+        "variants": {
+          "6B3B9B64": "SCES-02835P.lsd"
+        }
+      }
+    },
+    "SCES-12080": {
+      "title": "Final Fantasy VIII (Disc 2)",
+      "lsd": {
+        "default": "SCES-12080.lsd"
+      }
+    },
+    "SCES-22080": {
+      "title": "Final Fantasy VIII (Disc 3)",
+      "lsd": {
+        "default": "SCES-22080.lsd"
+      }
+    },
+    "SCES-32080": {
+      "title": "Final Fantasy VIII (Disc 4)",
+      "lsd": {
+        "default": "SCES-32080.lsd"
+      }
+    },
+    "SLED-01340": {
+      "title": "Net Yaroze",
+      "lsd": {
+        "default": "SLED-01340.lsd"
+      }
+    },
+    "SLES-00017": {
+      "title": "Prince Naseem Boxing",
+      "lsd": {
+        "default": "SLES-00017.lsd"
+      }
+    },
+    "SLES-00995": {
+      "title": "Ronaldo V-Football",
+      "lsd": {
+        "default": "SLES-00995.lsd"
+      }
+    },
+    "SLES-01041": {
+      "title": "Hogs of War",
+      "lsd": {
+        "default": "SLES-01041.lsd"
+      }
+    },
+    "SLES-01226": {
+      "title": "Actua Ice Hockey 2",
+      "lsd": {
+        "default": "SLES-01226.lsd"
+      }
+    },
+    "SLES-01241": {
+      "title": "Gekido: Urban Fighters",
+      "lsd": {
+        "default": "SLES-01241.lsd"
+      }
+    },
+    "SLES-01301": {
+      "title": "Legacy of Kain: Soul Reaver",
+      "lsd": {
+        "default": "SLES-01301.lsd"
+      }
+    },
+    "SLES-01362": {
+      "title": "Le Mans 24 Hours",
+      "lsd": {
+        "default": "SLES-01362.lsd"
+      }
+    },
+    "SLES-01545": {
+      "title": "Michelin Rally Masters: Race of Champions",
+      "lsd": {
+        "default": "SLES-01545.lsd"
+      }
+    },
+    "SLES-01715": {
+      "title": "Eagle One: Harrier Attack",
+      "lsd": {
+        "default": "SLES-01715.lsd"
+      }
+    },
+    "SLES-01733": {
+      "title": "UEFA Striker",
+      "lsd": {
+        "default": "SLES-01733.lsd"
+      }
+    },
+    "SLES-01906": {
+      "title": "Mission: Impossible",
+      "lsd": {
+        "default": "SLES-01906.lsd"
+      }
+    },
+    "SLES-01907": {
+      "title": "V-Rally: Championship Edition 2",
+      "lsd": {
+        "default": "SLES-01907.lsd"
+      }
+    },
+    "SLES-01943": {
+      "title": "Radikal Bikers",
+      "lsd": {
+        "default": "SLES-01943.lsd"
+      }
+    },
+    "SLES-02024": {
+      "title": "Legacy of Kain: Soul Reaver",
+      "lsd": {
+        "default": "SLES-02024.lsd"
+      }
+    },
+    "SLES-02025": {
+      "title": "Legacy of Kain: Soul Reaver",
+      "lsd": {
+        "default": "SLES-02025.lsd"
+      }
+    },
+    "SLES-02026": {
+      "title": "Legacy of Kain: Soul Reaver",
+      "lsd": {
+        "default": "SLES-02026.lsd"
+      }
+    },
+    "SLES-02027": {
+      "title": "Legacy of Kain: Soul Reaver",
+      "lsd": {
+        "default": "SLES-02027.lsd"
+      }
+    },
+    "SLES-02061": {
+      "title": "PGA European Tour Golf",
+      "lsd": {
+        "default": "SLES-02061.lsd"
+      }
+    },
+    "SLES-02071": {
+      "title": "Urban Chaos",
+      "lsd": {
+        "default": "SLES-02071.lsd"
+      }
+    },
+    "SLES-02080": {
+      "title": "Final Fantasy VIII (Disc 1)",
+      "lsd": {
+        "default": "SLES-02080.lsd"
+      }
+    },
+    "SLES-02081": {
+      "title": "Final Fantasy VIII (Disc 1)",
+      "lsd": {
+        "default": "SLES-02081.lsd"
+      }
+    },
+    "SLES-02082": {
+      "title": "Final Fantasy VIII (Disc 1)",
+      "lsd": {
+        "default": "SLES-02082.lsd"
+      }
+    },
+    "SLES-02083": {
+      "title": "Final Fantasy VIII (Disc 1)",
+      "lsd": {
+        "default": "SLES-02083.lsd"
+      }
+    },
+    "SLES-02084": {
+      "title": "Final Fantasy VIII (Disc 1)",
+      "lsd": {
+        "default": "SLES-02084.lsd"
+      }
+    },
+    "SLES-02086": {
+      "title": "N-Gen Racing",
+      "lsd": {
+        "default": "SLES-02086.lsd"
+      }
+    },
+    "SLES-02112": {
+      "title": "SaGa Frontier 2",
+      "lsd": {
+        "default": "SLES-02112.lsd"
+      }
+    },
+    "SLES-02113": {
+      "title": "SaGa Frontier 2",
+      "lsd": {
+        "default": "SLES-02113.lsd"
+      }
+    },
+    "SLES-02118": {
+      "title": "SaGa Frontier 2",
+      "lsd": {
+        "default": "SLES-02118.lsd"
+      }
+    },
+    "SLES-02207": {
+      "title": "Dino Crisis",
+      "lsd": {
+        "default": "SLES-02207.lsd"
+      }
+    },
+    "SLES-02208": {
+      "title": "Dino Crisis",
+      "lsd": {
+        "default": "SLES-02208.lsd"
+      }
+    },
+    "SLES-02209": {
+      "title": "Dino Crisis",
+      "lsd": {
+        "default": "SLES-02209.lsd"
+      }
+    },
+    "SLES-02210": {
+      "title": "Dino Crisis",
+      "lsd": {
+        "default": "SLES-02210.lsd"
+      }
+    },
+    "SLES-02211": {
+      "title": "Dino Crisis",
+      "lsd": {
+        "default": "SLES-02211.lsd"
+      }
+    },
+    "SLES-02292": {
+      "title": "Premier Manager 2000",
+      "lsd": {
+        "default": "SLES-02292.lsd"
+      }
+    },
+    "SLES-02293": {
+      "title": "Canal+ Premier Manager",
+      "lsd": {
+        "default": "SLES-02293.lsd"
+      }
+    },
+    "SLES-02328": {
+      "title": "Galerians (Disc 1)",
+      "lsd": {
+        "default": "SLES-02328.lsd"
+      }
+    },
+    "SLES-02329": {
+      "title": "Galerians (Disc 1)",
+      "lsd": {
+        "default": "SLES-02329.lsd"
+      }
+    },
+    "SLES-02330": {
+      "title": "Galerians (Disc 1)",
+      "lsd": {
+        "default": "SLES-02330.lsd"
+      }
+    },
+    "SLES-02354": {
+      "title": "Urban Chaos",
+      "lsd": {
+        "default": "SLES-02354.lsd"
+      }
+    },
+    "SLES-02355": {
+      "title": "Urban Chaos",
+      "lsd": {
+        "default": "SLES-02355.lsd"
+      }
+    },
+    "SLES-02395": {
+      "title": "Michelin Rally Masters: Race of Champions",
+      "lsd": {
+        "default": "SLES-02395.lsd"
+      }
+    },
+    "SLES-02396": {
+      "title": "PGA European Tour Golf",
+      "lsd": {
+        "default": "SLES-02396.lsd",
+        "variants": {
+          "DD6C5FA9": "SLES-02396P.lsd"
+        }
+      }
+    },
+    "SLES-02402": {
+      "title": "Mánager de Liga",
+      "lsd": {
+        "default": "SLES-02402.lsd"
+      }
+    },
+    "SLES-02529": {
+      "title": "Resident Evil 3: Nemesis",
+      "lsd": {
+        "default": "SLES-02529.lsd"
+      }
+    },
+    "SLES-02530": {
+      "title": "Resident Evil 3: Nemesis",
+      "lsd": {
+        "default": "SLES-02530.lsd"
+      }
+    },
+    "SLES-02531": {
+      "title": "Resident Evil 3: Nemesis",
+      "lsd": {
+        "default": "SLES-02531.lsd"
+      }
+    },
+    "SLES-02532": {
+      "title": "Resident Evil 3: Nemesis",
+      "lsd": {
+        "default": "SLES-02532.lsd"
+      }
+    },
+    "SLES-02533": {
+      "title": "Resident Evil 3: Nemesis",
+      "lsd": {
+        "default": "SLES-02533.lsd"
+      }
+    },
+    "SLES-02538": {
+      "title": "EA Sports Superbike 2000",
+      "lsd": {
+        "default": "SLES-02538.lsd"
+      }
+    },
+    "SLES-02558": {
+      "title": "Parasite Eve II (Disc 1)",
+      "lsd": {
+        "default": "SLES-02558.lsd"
+      }
+    },
+    "SLES-02559": {
+      "title": "Parasite Eve II (Disc 1)",
+      "lsd": {
+        "default": "SLES-02559.lsd"
+      }
+    },
+    "SLES-02560": {
+      "title": "Parasite Eve II (Disc 1)",
+      "lsd": {
+        "default": "SLES-02560.lsd"
+      }
+    },
+    "SLES-02561": {
+      "title": "Parasite Eve II (Disc 1)",
+      "lsd": {
+        "default": "SLES-02561.lsd"
+      }
+    },
+    "SLES-02562": {
+      "title": "Parasite Eve II (Disc 1)",
+      "lsd": {
+        "default": "SLES-02562.lsd"
+      }
+    },
+    "SLES-02563": {
+      "title": "Anstoss: Premier Manager",
+      "lsd": {
+        "default": "SLES-02563.lsd"
+      }
+    },
+    "SLES-02572": {
+      "title": "TOCA World Touring Cars",
+      "lsd": {
+        "default": "SLES-02572.lsd"
+      }
+    },
+    "SLES-02573": {
+      "title": "TOCA World Touring Cars",
+      "lsd": {
+        "default": "SLES-02573.lsd"
+      }
+    },
+    "SLES-02681": {
+      "title": "Ronaldo V-Football",
+      "lsd": {
+        "default": "SLES-02681.lsd"
+      }
+    },
+    "SLES-02688": {
+      "title": "Theme Park World",
+      "lsd": {
+        "default": "SLES-02688.lsd"
+      }
+    },
+    "SLES-02689": {
+      "title": "Need for Speed: Porsche 2000",
+      "lsd": {
+        "default": "SLES-02689.lsd"
+      }
+    },
+    "SLES-02698": {
+      "title": "Resident Evil 3: Nemesis",
+      "lsd": {
+        "default": "SLES-02698.lsd"
+      }
+    },
+    "SLES-02700": {
+      "title": "Need for Speed: Porsche 2000",
+      "lsd": {
+        "default": "SLES-02700.lsd"
+      }
+    },
+    "SLES-02704": {
+      "title": "UEFA Euro 2000",
+      "lsd": {
+        "default": "SLES-02704.lsd"
+      }
+    },
+    "SLES-02705": {
+      "title": "UEFA Euro 2000",
+      "lsd": {
+        "default": "SLES-02705.lsd"
+      }
+    },
+    "SLES-02706": {
+      "title": "UEFA Euro 2000",
+      "lsd": {
+        "default": "SLES-02706.lsd"
+      }
+    },
+    "SLES-02707": {
+      "title": "UEFA Euro 2000",
+      "lsd": {
+        "default": "SLES-02707.lsd"
+      }
+    },
+    "SLES-02708": {
+      "title": "UEFA Euro 2000",
+      "lsd": {
+        "default": "SLES-02708.lsd"
+      }
+    },
+    "SLES-02722": {
+      "title": "F1 2000",
+      "lsd": {
+        "default": "SLES-02722.lsd"
+      }
+    },
+    "SLES-02723": {
+      "title": "F1 2000",
+      "lsd": {
+        "default": "SLES-02723.lsd"
+      }
+    },
+    "SLES-02724": {
+      "title": "F1 2000",
+      "lsd": {
+        "default": "SLES-02724.lsd"
+      }
+    },
+    "SLES-02733": {
+      "title": "Walt Disney World Quest: Magical Racing Tour",
+      "lsd": {
+        "default": "SLES-02733.lsd"
+      }
+    },
+    "SLES-02754": {
+      "title": "Vagrant Story",
+      "lsd": {
+        "default": "SLES-02754.lsd"
+      }
+    },
+    "SLES-02755": {
+      "title": "Vagrant Story",
+      "lsd": {
+        "default": "SLES-02755.lsd"
+      }
+    },
+    "SLES-02756": {
+      "title": "Vagrant Story",
+      "lsd": {
+        "default": "SLES-02756.lsd"
+      }
+    },
+    "SLES-02763": {
+      "title": "SnoCross Championship Racing",
+      "lsd": {
+        "default": "SLES-02763.lsd"
+      }
+    },
+    "SLES-02766": {
+      "title": "Les Cochons de Guerre",
+      "lsd": {
+        "default": "SLES-02766.lsd",
+        "variants": {
+          "4C3DB9F8": "SLES-02766P.lsd"
+        }
+      }
+    },
+    "SLES-02767": {
+      "title": "Frontschweine",
+      "lsd": {
+        "default": "SLES-02767.lsd"
+      }
+    },
+    "SLES-02768": {
+      "title": "Marranos en Guerra",
+      "lsd": {
+        "default": "SLES-02768.lsd"
+      }
+    },
+    "SLES-02769": {
+      "title": "Hogs of War: Nati per Soffritto",
+      "lsd": {
+        "default": "SLES-02769.lsd"
+      }
+    },
+    "SLES-02824": {
+      "title": "RC Revenge",
+      "lsd": {
+        "default": "SLES-02824.lsd"
+      }
+    },
+    "SLES-02830": {
+      "title": "MoHo",
+      "lsd": {
+        "default": "SLES-02830.lsd"
+      }
+    },
+    "SLES-02831": {
+      "title": "TechnoMage: Die Rückkehr der Ewigkeit",
+      "lsd": {
+        "default": "SLES-02831.lsd"
+      }
+    },
+    "SLES-02839": {
+      "title": "Mike Tyson Boxing",
+      "lsd": {
+        "default": "SLES-02839.lsd"
+      }
+    },
+    "SLES-02857": {
+      "title": "Sydney 2000",
+      "lsd": {
+        "default": "SLES-02857.lsd"
+      }
+    },
+    "SLES-02858": {
+      "title": "Sydney 2000",
+      "lsd": {
+        "default": "SLES-02858.lsd"
+      }
+    },
+    "SLES-02859": {
+      "title": "Sydney 2000",
+      "lsd": {
+        "default": "SLES-02859.lsd"
+      }
+    },
+    "SLES-02860": {
+      "title": "Sydney 2000",
+      "lsd": {
+        "default": "SLES-02860.lsd"
+      }
+    },
+    "SLES-02861": {
+      "title": "Sydney 2000",
+      "lsd": {
+        "default": "SLES-02861.lsd"
+      }
+    },
+    "SLES-02862": {
+      "title": "Sydney 2000",
+      "lsd": {
+        "default": "SLES-02862.lsd"
+      }
+    },
+    "SLES-02965": {
+      "title": "Final Fantasy IX (Disc 1)",
+      "lsd": {
+        "default": "SLES-02965.lsd"
+      }
+    },
+    "SLES-02966": {
+      "title": "Final Fantasy IX (Disc 1)",
+      "lsd": {
+        "default": "SLES-02966.lsd"
+      }
+    },
+    "SLES-02967": {
+      "title": "Final Fantasy IX (Disc 1)",
+      "lsd": {
+        "default": "SLES-02967.lsd"
+      }
+    },
+    "SLES-02968": {
+      "title": "Final Fantasy IX (Disc 1)",
+      "lsd": {
+        "default": "SLES-02968.lsd"
+      }
+    },
+    "SLES-02969": {
+      "title": "Final Fantasy IX (Disc 1)",
+      "lsd": {
+        "default": "SLES-02969.lsd"
+      }
+    },
+    "SLES-02975": {
+      "title": "LMA Manager 2001",
+      "lsd": {
+        "default": "SLES-02975.lsd",
+        "variants": {
+          "4457EAB0": "SLES-02975P.lsd"
+        }
+      }
+    },
+    "SLES-02976": {
+      "title": "Roger Lemerre: La Sélection des Champions",
+      "lsd": {
+        "default": "SLES-02976.lsd"
+      }
+    },
+    "SLES-02977": {
+      "title": "BDFL Manager 2001",
+      "lsd": {
+        "default": "SLES-02977.lsd"
+      }
+    },
+    "SLES-02978": {
+      "title": "Football Manager Campionato 2001",
+      "lsd": {
+        "default": "SLES-02978.lsd"
+      }
+    },
+    "SLES-02979": {
+      "title": "Manager de Liga 2001",
+      "lsd": {
+        "default": "SLES-02979.lsd"
+      }
+    },
+    "SLES-03061": {
+      "title": "The F.A. Premier League Football Manager 2001",
+      "lsd": {
+        "default": "SLES-03061.lsd"
+      }
+    },
+    "SLES-03062": {
+      "title": "Fussball Manager 2001",
+      "lsd": {
+        "default": "SLES-03062.lsd"
+      }
+    },
+    "SLES-03189": {
+      "title": "Disney's 102 Dalmatians: Puppies to the Rescue",
+      "lsd": {
+        "default": "SLES-03189.lsd"
+      }
+    },
+    "SLES-03190": {
+      "title": "Disney's 102 Dalmatiner: Valpar till undsättning",
+      "lsd": {
+        "default": "SLES-03190.lsd"
+      }
+    },
+    "SLES-03191": {
+      "title": "Disney's 102 Dalmatians: Puppies to the Rescue",
+      "lsd": {
+        "default": "SLES-03191.lsd"
+      }
+    },
+    "SLES-03241": {
+      "title": "TechnoMage: Return of Eternity",
+      "lsd": {
+        "default": "SLES-03241.lsd"
+      }
+    },
+    "SLES-03242": {
+      "title": "TechnoMage: En Quête de L'Eternité",
+      "lsd": {
+        "default": "SLES-03242.lsd"
+      }
+    },
+    "SLES-03243": {
+      "title": "TechnoMage: Ritorno all'Eternità",
+      "lsd": {
+        "default": "SLES-03243.lsd"
+      }
+    },
+    "SLES-03244": {
+      "title": "TechnoMage: El Retorno de la Eternidad",
+      "lsd": {
+        "default": "SLES-03244.lsd"
+      }
+    },
+    "SLES-03245": {
+      "title": "TechnoMage: De Terugkeer der Eeuwigheid",
+      "lsd": {
+        "default": "SLES-03245.lsd"
+      }
+    },
+    "SLES-03324": {
+      "title": "Astérix: Mega Madness",
+      "lsd": {
+        "default": "SLES-03324.lsd"
+      }
+    },
+    "SLES-03489": {
+      "title": "The Italian Job",
+      "lsd": {
+        "default": "SLES-03489.lsd"
+      }
+    },
+    "SLES-03519": {
+      "title": "Men in Black: The Series: Crashdown",
+      "lsd": {
+        "default": "SLES-03519.lsd"
+      }
+    },
+    "SLES-03520": {
+      "title": "Men in Black: The Series: Crashdown",
+      "lsd": {
+        "default": "SLES-03520.lsd"
+      }
+    },
+    "SLES-03521": {
+      "title": "Men in Black: The Series: Crashdown",
+      "lsd": {
+        "default": "SLES-03521.lsd"
+      }
+    },
+    "SLES-03522": {
+      "title": "Men in Black: The Series: Crashdown",
+      "lsd": {
+        "default": "SLES-03522.lsd"
+      }
+    },
+    "SLES-03523": {
+      "title": "Men in Black: The Series: Crashdown",
+      "lsd": {
+        "default": "SLES-03523.lsd"
+      }
+    },
+    "SLES-03530": {
+      "title": "Lucky Luke: Western Fever",
+      "lsd": {
+        "default": "SLES-03530.lsd"
+      }
+    },
+    "SLES-03603": {
+      "title": "LMA Manager 2002",
+      "lsd": {
+        "default": "SLES-03603.lsd"
+      }
+    },
+    "SLES-03604": {
+      "title": "Roger Lemerre: La Sélection des Champions 2002",
+      "lsd": {
+        "default": "SLES-03604.lsd"
+      }
+    },
+    "SLES-03605": {
+      "title": "BDFL Manager 2002",
+      "lsd": {
+        "default": "SLES-03605.lsd"
+      }
+    },
+    "SLES-03606": {
+      "title": "Football Manager Campionato 2002",
+      "lsd": {
+        "default": "SLES-03606.lsd"
+      }
+    },
+    "SLES-03607": {
+      "title": "Manager de Liga 2002",
+      "lsd": {
+        "default": "SLES-03607.lsd"
+      }
+    },
+    "SLES-03626": {
+      "title": "The Italian Job",
+      "lsd": {
+        "default": "SLES-03626.lsd"
+      }
+    },
+    "SLES-03648": {
+      "title": "The Italian Job",
+      "lsd": {
+        "default": "SLES-03648.lsd"
+      }
+    },
+    "SLES-12080": {
+      "title": "Final Fantasy VIII (Disc 2)",
+      "lsd": {
+        "default": "SLES-12080.lsd"
+      }
+    },
+    "SLES-12081": {
+      "title": "Final Fantasy VIII (Disc 2)",
+      "lsd": {
+        "default": "SLES-12081.lsd"
+      }
+    },
+    "SLES-12082": {
+      "title": "Final Fantasy VIII (Disc 2)",
+      "lsd": {
+        "default": "SLES-12082.lsd"
+      }
+    },
+    "SLES-12083": {
+      "title": "Final Fantasy VIII (Disc 2)",
+      "lsd": {
+        "default": "SLES-12083.lsd"
+      }
+    },
+    "SLES-12084": {
+      "title": "Final Fantasy VIII (Disc 2)",
+      "lsd": {
+        "default": "SLES-12084.lsd"
+      }
+    },
+    "SLES-12328": {
+      "title": "Galerians (Disc 2)",
+      "lsd": {
+        "default": "SLES-12328.lsd"
+      }
+    },
+    "SLES-12329": {
+      "title": "Galerians (Disc 2)",
+      "lsd": {
+        "default": "SLES-12329.lsd"
+      }
+    },
+    "SLES-12330": {
+      "title": "Galerians (Disc 2)",
+      "lsd": {
+        "default": "SLES-12330.lsd"
+      }
+    },
+    "SLES-12558": {
+      "title": "Parasite Eve II (Disc 2)",
+      "lsd": {
+        "default": "SLES-12558.lsd"
+      }
+    },
+    "SLES-12559": {
+      "title": "Parasite Eve II (Disc 2)",
+      "lsd": {
+        "default": "SLES-12559.lsd"
+      }
+    },
+    "SLES-12560": {
+      "title": "Parasite Eve II (Disc 2)",
+      "lsd": {
+        "default": "SLES-12560.lsd"
+      }
+    },
+    "SLES-12561": {
+      "title": "Parasite Eve II (Disc 2)",
+      "lsd": {
+        "default": "SLES-12561.lsd"
+      }
+    },
+    "SLES-12562": {
+      "title": "Parasite Eve II (Disc 2)",
+      "lsd": {
+        "default": "SLES-12562.lsd"
+      }
+    },
+    "SLES-12965": {
+      "title": "Final Fantasy IX (Disc 2)",
+      "lsd": {
+        "default": "SLES-12965.lsd"
+      }
+    },
+    "SLES-12966": {
+      "title": "Final Fantasy IX (Disc 2)",
+      "lsd": {
+        "default": "SLES-12966.lsd"
+      }
+    },
+    "SLES-12967": {
+      "title": "Final Fantasy IX (Disc 2)",
+      "lsd": {
+        "default": "SLES-12967.lsd"
+      }
+    },
+    "SLES-12968": {
+      "title": "Final Fantasy IX (Disc 2)",
+      "lsd": {
+        "default": "SLES-12968.lsd"
+      }
+    },
+    "SLES-12969": {
+      "title": "Final Fantasy IX (Disc 2)",
+      "lsd": {
+        "default": "SLES-12969.lsd"
+      }
+    },
+    "SLES-22080": {
+      "title": "Final Fantasy VIII (Disc 3)",
+      "lsd": {
+        "default": "SLES-22080.lsd"
+      }
+    },
+    "SLES-22081": {
+      "title": "Final Fantasy VIII (Disc 3)",
+      "lsd": {
+        "default": "SLES-22081.lsd"
+      }
+    },
+    "SLES-22082": {
+      "title": "Final Fantasy VIII (Disc 3)",
+      "lsd": {
+        "default": "SLES-22082.lsd"
+      }
+    },
+    "SLES-22083": {
+      "title": "Final Fantasy VIII (Disc 3)",
+      "lsd": {
+        "default": "SLES-22083.lsd"
+      }
+    },
+    "SLES-22084": {
+      "title": "Final Fantasy VIII (Disc 3)",
+      "lsd": {
+        "default": "SLES-22084.lsd"
+      }
+    },
+    "SLES-22328": {
+      "title": "Galerians (Disc 3)",
+      "lsd": {
+        "default": "SLES-22328.lsd"
+      }
+    },
+    "SLES-22329": {
+      "title": "Galerians (Disc 3)",
+      "lsd": {
+        "default": "SLES-22329.lsd"
+      }
+    },
+    "SLES-22330": {
+      "title": "Galerians (Disc 3)",
+      "lsd": {
+        "default": "SLES-22330.lsd"
+      }
+    },
+    "SLES-22965": {
+      "title": "Final Fantasy IX (Disc 3)",
+      "lsd": {
+        "default": "SLES-22965.lsd"
+      }
+    },
+    "SLES-22966": {
+      "title": "Final Fantasy IX (Disc 3)",
+      "lsd": {
+        "default": "SLES-22966.lsd"
+      }
+    },
+    "SLES-22967": {
+      "title": "Final Fantasy IX (Disc 3)",
+      "lsd": {
+        "default": "SLES-22967.lsd"
+      }
+    },
+    "SLES-22968": {
+      "title": "Final Fantasy IX (Disc 3)",
+      "lsd": {
+        "default": "SLES-22968.lsd"
+      }
+    },
+    "SLES-22969": {
+      "title": "Final Fantasy IX (Disc 3)",
+      "lsd": {
+        "default": "SLES-22969.lsd"
+      }
+    },
+    "SLES-32080": {
+      "title": "Final Fantasy VIII (Disc 4)",
+      "lsd": {
+        "default": "SLES-32080.lsd"
+      }
+    },
+    "SLES-32081": {
+      "title": "Final Fantasy VIII (Disc 4)",
+      "lsd": {
+        "default": "SLES-32081.lsd"
+      }
+    },
+    "SLES-32082": {
+      "title": "Final Fantasy VIII (Disc 4)",
+      "lsd": {
+        "default": "SLES-32082.lsd"
+      }
+    },
+    "SLES-32083": {
+      "title": "Final Fantasy VIII (Disc 4)",
+      "lsd": {
+        "default": "SLES-32083.lsd"
+      }
+    },
+    "SLES-32084": {
+      "title": "Final Fantasy VIII (Disc 4)",
+      "lsd": {
+        "default": "SLES-32084.lsd"
+      }
+    },
+    "SLES-32965": {
+      "title": "Final Fantasy IX (Disc 4)",
+      "lsd": {
+        "default": "SLES-32965.lsd"
+      }
+    },
+    "SLES-32966": {
+      "title": "Final Fantasy IX (Disc 4)",
+      "lsd": {
+        "default": "SLES-32966.lsd"
+      }
+    },
+    "SLES-32967": {
+      "title": "Final Fantasy IX (Disc 4)",
+      "lsd": {
+        "default": "SLES-32967.lsd"
+      }
+    },
+    "SLES-32968": {
+      "title": "Final Fantasy IX (Disc 4)",
+      "lsd": {
+        "default": "SLES-32968.lsd"
+      }
+    },
+    "SLES-32969": {
+      "title": "Final Fantasy IX (Disc 4)",
+      "lsd": {
+        "default": "SLES-32969.lsd"
+      }
+    }
+  }
+}
